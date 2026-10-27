@@ -26,11 +26,12 @@ interface WordHistoryItem {
 
 // Masofa bo'yicha talab qilinadigan to'g'ri belgilar soni
 export const DISTANCE_TARGETS: Record<number, number> = {
-  50: 50,    // ~10 so'z
-  100: 100,  // ~20 so'z
-  200: 190,  // ~38 so'z
-  500: 450,  // ~80 so'z
-  1000: 850  // ~160 so'z
+  50: 50,     // ~10 so'z
+  100: 100,   // ~20 so'z
+  200: 190,   // ~38 so'z
+  500: 450,   // ~80 so'z
+  1000: 850,  // ~160 so'z
+  1500: 1250  // ~240 so'z
 };
 
 export const getTargetCharsForDistance = (meters: number): number => {
@@ -539,10 +540,10 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
           )}
         </div>
 
-        {/* O'rtada Masofa tanlash tugmalari: 50m, 100m, 200m, 500m, 1000m */}
+        {/* O'rtada Masofa tanlash tugmalari: 50m, 100m, 200m, 500m, 1000m, 1500m */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 p-0.5 bg-slate-950/90 border border-slate-800 rounded-lg shadow-inner">
-            {[50, 100, 200, 500, 1000].map((dist) => (
+            {[50, 100, 200, 500, 1000, 1500].map((dist) => (
               <button
                 key={dist}
                 type="button"

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Users, PlusCircle, ArrowRight, Volume2, VolumeX, Car, AlertCircle } from 'lucide-react';
-import { CarSelector } from './CarSelector';
-import { CarSprite } from './CarSprite';
-import { FAMOUS_CARS } from '../data/cars';
+import { Play, Users, PlusCircle, Car, Volume2, VolumeX, Check, Copy, X, Edit3, AlertCircle, ArrowRight } from 'lucide-react';
+import { FAMOUS_CARS, RacingCar } from '../data/cars';
+import { CarShowcase } from './CarShowcase';
 import { DifficultyLevel } from '../types';
 import { SwitchSoundType } from '../utils/soundEffects';
 
@@ -15,7 +14,7 @@ interface HomeModeSelectorProps {
   onUpdateUser: (name: string, carId: string) => void;
   onStartSolo: (userName: string, carId: string, difficulty: DifficultyLevel, distance?: number) => void;
   onJoinGroup: (roomId: string, userName: string, carId: string) => void;
-  onCreateGroup: (groupName: string, userName: string, carId: string, targetDistance?: number) => void;
+  onCreateGroup: (groupName: string, userName: string, carId: string, targetDistance?: number, customId?: string) => void;
   soundType: SwitchSoundType;
   onToggleSound: () => void;
   initialRoomId?: string;
@@ -31,42 +30,86 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
   onToggleSound,
   initialRoomId = ''
 }) => {
+  // Foydalanuvchi ma'lumotlari
   const [name, setName] = useState<string>(currentUser.name || 'Poygachi');
   const [selectedCarId, setSelectedCarId] = useState<string>(currentUser.carId || 'bmw');
-  const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
-  const [soloDistance, setSoloDistance] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('tg_user_dist');
-      return saved ? Number(saved) : 100;
-    } catch {
-      return 100;
-    }
-  });
-  const [groupName, setGroupName] = useState<string>('Tezkor Poygachilar');
-  const [targetDistance, setTargetDistance] = useState<number>(100);
+
+  // Modallar holati
+  const [showFirstTimeModal, setShowFirstTimeModal] = useState<boolean>(false);
+  const [tempFirstName, setTempFirstName] = useState<string>('');
+
+  const [showPlaySoloModal, setShowPlaySoloModal] = useState<boolean>(false);
+  const [soloDifficulty, setSoloDifficulty] = useState<DifficultyLevel>('medium');
+  const [soloDistance, setSoloDistance] = useState<number>(100);
+
+  const [showJoinModal, setShowJoinModal] = useState<boolean>(false);
   const [joinPin, setJoinPin] = useState<string>(initialRoomId);
-  const [errorMsg, setErrorMsg] = useState<string>('');
+
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [newGroupName, setNewGroupName] = useState<string>('Tezkor Poygachilar');
+  const [newGroupDistance, setNewGroupDistance] = useState<number>(100);
+  const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
+  const [copiedPin, setCopiedPin] = useState<boolean>(false);
+
   const [showCarModal, setShowCarModal] = useState<boolean>(false);
-  const [mobileTab, setMobileTab] = useState<'solo' | 'create' | 'join'>('solo');
+  const [showEditNameModal, setShowEditNameModal] = useState<boolean>(false);
+  const [editNameInput, setEditNameInput] = useState<string>('');
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
+  // 1. Ilk bor tashrif buyurganini tekshirish (localStorage da ism yo'q bo'lsa modal chiqadi)
   useEffect(() => {
-    if (initialRoomId) {
-      setJoinPin(initialRoomId);
-      setMobileTab('join');
-    }
-  }, [initialRoomId]);
-
-  const handleNameChange = (val: string) => {
-    setName(val);
     try {
-      localStorage.setItem('tg_user_name', val);
+      const savedName = localStorage.getItem('tg_user_name');
+      if (!savedName || savedName.trim() === '' || savedName === 'Poygachi') {
+        setShowFirstTimeModal(true);
+      }
     } catch {
       // ignore
     }
-    onUpdateUser(val, selectedCarId);
+  }, []);
+
+  // URL da room PIN kodi kelsa avtomatik ulanish modalini ochish
+  useEffect(() => {
+    if (initialRoomId) {
+      setJoinPin(initialRoomId);
+      setShowJoinModal(true);
+    }
+  }, [initialRoomId]);
+
+  const currentCar = FAMOUS_CARS.find(c => c.id === selectedCarId) || FAMOUS_CARS[0];
+
+  // Ilk bor ism kiritish
+  const handleSaveFirstName = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = tempFirstName.trim();
+    if (!clean) return;
+    setName(clean);
+    try {
+      localStorage.setItem('tg_user_name', clean);
+    } catch {
+      // ignore
+    }
+    onUpdateUser(clean, selectedCarId);
+    setShowFirstTimeModal(false);
   };
 
-  const handleCarChange = (carId: string) => {
+  // Ismni tahrirlash
+  const handleSaveEditedName = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = editNameInput.trim();
+    if (!clean) return;
+    setName(clean);
+    try {
+      localStorage.setItem('tg_user_name', clean);
+    } catch {
+      // ignore
+    }
+    onUpdateUser(clean, selectedCarId);
+    setShowEditNameModal(false);
+  };
+
+  // Mashina almashtirish
+  const handleSelectCar = (carId: string) => {
     setSelectedCarId(carId);
     try {
       localStorage.setItem('tg_user_car', carId);
@@ -77,439 +120,605 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
     setShowCarModal(false);
   };
 
-  const getCleanName = () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setErrorMsg('Iltimos, avval ismingizni kiriting!');
-      return null;
-    }
-    setErrorMsg('');
-    return trimmed;
+  // Yakka poygani boshlash
+  const handleConfirmStartSolo = () => {
+    setShowPlaySoloModal(false);
+    onStartSolo(name, selectedCarId, soloDifficulty, soloDistance);
   };
 
-  const handleSoloClick = () => {
-    const validName = getCleanName();
-    if (!validName) return;
-    try {
-      localStorage.setItem('tg_user_dist', soloDistance.toString());
-    } catch {
-      // ignore
-    }
-    onStartSolo(validName, selectedCarId, difficulty, soloDistance);
-  };
-
-  const handleCreateClick = (e: React.FormEvent) => {
+  // Guruhga qo'shilish
+  const handleConfirmJoin = (e: React.FormEvent) => {
     e.preventDefault();
-    const validName = getCleanName();
-    if (!validName) return;
-
-    const gName = groupName.trim() || 'Tezkor Poygachilar';
-    onCreateGroup(gName, validName, selectedCarId, targetDistance);
-  };
-
-  const handleJoinClick = (e: React.FormEvent) => {
-    e.preventDefault();
-    const validName = getCleanName();
-    if (!validName) return;
-
-    const cleanPin = joinPin.trim().replace(/\D/g, '');
-    if (cleanPin.length !== 6) {
+    const clean = joinPin.trim().replace(/\D/g, '');
+    if (clean.length !== 6) {
       setErrorMsg('Iltimos, 6 raqamli xona kodini (PIN) toʻliq kiriting!');
       return;
     }
-    onJoinGroup(cleanPin, validName, selectedCarId);
+    setErrorMsg('');
+    setShowJoinModal(false);
+    onJoinGroup(clean, name, selectedCarId);
   };
 
-  const currentCar = FAMOUS_CARS.find(c => c.id === selectedCarId) || FAMOUS_CARS[0];
+  // Guruh yaratish (1-bosqich: 6 xonali ID ni generatsiya qilish va katta qilib modalda ko'rsatish)
+  const handleConfirmCreateGroup = (e: React.FormEvent) => {
+    e.preventDefault();
+    const generatedId = String(Math.floor(100000 + Math.random() * 900000));
+    setCreatedRoomId(generatedId);
+  };
+
+  // 2-bosqich: Katta ID ko'rsatilgach, xonaga kirish
+  const handleEnterCreatedRoom = () => {
+    if (!createdRoomId) return;
+    const gName = newGroupName.trim() || 'Tezkor Poygachilar';
+    const dist = Math.max(50, Math.min(1500, newGroupDistance));
+    setShowCreateModal(false);
+    onCreateGroup(gName, name, selectedCarId, dist, createdRoomId);
+  };
+
+  const handleCopyCreatedPin = () => {
+    if (createdRoomId && navigator.clipboard) {
+      navigator.clipboard.writeText(createdRoomId);
+      setCopiedPin(true);
+      setTimeout(() => setCopiedPin(false), 2000);
+    }
+  };
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col justify-between py-1 px-2 select-none animate-fade-in">
-      {/* 1. Header: Logo va Ovoz sozlamasi */}
-      <header className="flex items-center justify-between px-3 py-1.5 bg-slate-950/80 border border-slate-800/80 rounded-xl shadow-xl backdrop-blur-md mb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-md shadow-emerald-400/50 animate-pulse" />
-          <h1 className="text-xs sm:text-sm font-black tracking-tight text-white font-mono flex items-center gap-1.5">
-            TYPING <span className="text-emerald-400">GROUPS</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-500/50 text-emerald-300 font-sans font-bold uppercase">
-              POYGA
-            </span>
-          </h1>
-        </div>
-
-        {/* Ovoz sozlamasi */}
+    <div className="relative w-full min-h-[calc(100vh-4.5rem)] flex flex-col justify-between p-3 sm:p-6 select-none animate-fade-in overflow-hidden">
+      {/* ========================================================= */}
+      {/* 1. YUQORI BOSHQARUV QATORI                                */}
+      {/* ========================================================= */}
+      <div className="w-full flex items-center justify-between gap-2 z-20">
+        {/* CHAP YUQORI BURCHAK: Guruh Yaratish Tugmasi */}
         <button
           type="button"
-          onClick={onToggleSound}
-          className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white rounded-lg text-xs font-mono font-bold cursor-pointer transition-colors shadow-sm"
-          title="Tovushni almashtirish"
+          onClick={() => {
+            setCreatedRoomId(null);
+            setShowCreateModal(true);
+          }}
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-cyan-950/90 to-blue-950/90 hover:from-cyan-900 hover:to-blue-900 border border-cyan-500/50 hover:border-cyan-400 rounded-xl text-cyan-200 hover:text-white text-xs sm:text-sm font-bold shadow-lg shadow-cyan-950/50 hover:shadow-cyan-500/20 transition-all cursor-pointer group active:scale-95"
+          title="Yangi guruh ochish va do'stlar bilan poygalash"
         >
-          {soundType === 'off' ? (
-            <>
-              <VolumeX className="w-3 h-3 text-rose-400" />
-              <span className="text-[11px]">Ovoz: Off</span>
-            </>
-          ) : (
-            <>
-              <Volume2 className="w-3 h-3 text-emerald-400" />
-              <span className="text-[11px]">{soundType.toUpperCase()}</span>
-            </>
-          )}
-        </button>
-      </header>
-
-      {/* Xatolik xabarnomasi */}
-      {errorMsg && (
-        <div className="mb-2 p-2 bg-rose-950/90 border border-rose-500/60 rounded-xl text-rose-300 text-xs flex items-center justify-center gap-2 animate-bounce">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span className="font-bold">{errorMsg}</span>
-        </div>
-      )}
-
-      {/* 2. Haydovchi Profili (Mobil va kompyuter uchun ixcham bitta qator) */}
-      <section className="mb-2.5 p-2 sm:p-2.5 bg-slate-950/80 border border-cyan-500/30 rounded-xl shadow-xl backdrop-blur-md">
-        <div className="flex items-center gap-2">
-          {/* Ism kiritish */}
-          <div className="relative flex-1">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs">👤</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => handleNameChange(e.target.value)}
-              placeholder="Ismingizni yozing..."
-              maxLength={24}
-              className="w-full pl-7 pr-3 py-1.5 bg-slate-900 border border-slate-700/80 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 rounded-lg text-white font-bold text-xs sm:text-sm tracking-wide transition-all outline-none"
-            />
+          <div className="w-6 h-6 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 group-hover:scale-110 transition-transform">
+            <PlusCircle className="w-3.5 h-3.5" />
           </div>
+          <span>Guruh Yaratish</span>
+        </button>
 
-          {/* Mashina tanlash tugmasi */}
+        {/* O'RTA: Ovoz almashtirish va ism tahrirlash */}
+        <div className="flex items-center gap-2">
+          {/* Ismni tahrirlash */}
           <button
             type="button"
-            onClick={() => setShowCarModal(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 hover:bg-slate-850 border border-slate-700 hover:border-cyan-400 rounded-lg text-slate-200 cursor-pointer transition-colors shrink-0"
-            title="Poyga mashinasini tanlash"
+            onClick={() => {
+              setEditNameInput(name);
+              setShowEditNameModal(true);
+            }}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer"
+            title="Ismni o'zgartirish"
           >
-            <span
-              className="w-3 h-3 rounded-full border border-slate-600 shrink-0 shadow-sm"
-              style={{ backgroundColor: currentCar.bodyColor }}
-            />
-            <span className="font-bold text-xs text-white">{currentCar.name.split(' ')[0]}</span>
-            <span className="text-[10px] text-cyan-400 font-bold">▾</span>
+            <span>👤</span>
+            <span className="truncate max-w-[100px]">{name}</span>
+            <Edit3 className="w-3 h-3 text-cyan-400 opacity-80" />
+          </button>
+
+          {/* Ovoz sozlamasi */}
+          <button
+            type="button"
+            onClick={onToggleSound}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white rounded-xl text-xs font-mono font-bold cursor-pointer transition-colors"
+            title="Klaviatura ovozini almashtirish"
+          >
+            {soundType === 'off' ? (
+              <>
+                <VolumeX className="w-3.5 h-3.5 text-rose-400" />
+                <span className="hidden xs:inline text-[11px]">Ovoz: Off</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden xs:inline text-[11px] uppercase">{soundType}</span>
+              </>
+            )}
           </button>
         </div>
-      </section>
 
-      {/* 3. MOBIL QURILMALAR UCHUN IXCHAM REJIM TANLASH TUGMALARI (Segmented Bar) */}
-      <div className="md:hidden flex items-center p-1 bg-slate-950/90 border border-slate-800 rounded-xl mb-2 gap-1">
+        {/* O'NG YUQORI BURCHAK: Mashinani Almashtirish Tugmasi */}
         <button
           type="button"
-          onClick={() => { setMobileTab('solo'); setErrorMsg(''); }}
-          className={`flex-1 py-2 px-1 text-center rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-            mobileTab === 'solo'
-              ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-              : 'text-slate-400 hover:text-white'
-          }`}
+          onClick={() => setShowCarModal(true)}
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-amber-950/90 to-orange-950/90 hover:from-amber-900 hover:to-orange-900 border border-amber-500/50 hover:border-amber-400 rounded-xl text-amber-200 hover:text-white text-xs sm:text-sm font-bold shadow-lg shadow-amber-950/50 hover:shadow-amber-500/20 transition-all cursor-pointer group active:scale-95"
+          title="Mashinalar garajidan yangi model tanlash"
         >
-          <Trophy className="w-3.5 h-3.5" />
-          <span>Yakkaxon</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => { setMobileTab('create'); setErrorMsg(''); }}
-          className={`flex-1 py-2 px-1 text-center rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-            mobileTab === 'create'
-              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <PlusCircle className="w-3.5 h-3.5" />
-          <span>Guruh Ochish</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => { setMobileTab('join'); setErrorMsg(''); }}
-          className={`flex-1 py-2 px-1 text-center rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-            mobileTab === 'join'
-              ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span>Ulanish</span>
+          <div className="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 group-hover:scale-110 transition-transform">
+            <Car className="w-3.5 h-3.5" />
+          </div>
+          <span>Mashinani Almashtirish</span>
         </button>
       </div>
 
-      {/* 4. ASOSIY REJIM KARTALARI (Mobilda faol tanlangan kartagina ko'rinadi, kompyuterda barchasi yonma-yon) */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
-        {/* REJIM 1: O'ZIM YOZISHIM (YAKKAXON POYGA) */}
-        <div
-          className={`p-3.5 sm:p-4 rounded-xl border-2 border-emerald-500/40 bg-gradient-to-b from-[#0a1e17]/95 to-[#06120e]/95 flex flex-col justify-between text-left shadow-xl shadow-black/60 relative overflow-hidden backdrop-blur-md transition-all ${
-            mobileTab === 'solo' ? 'block' : 'hidden md:flex'
-          }`}
+      {/* ========================================================= */}
+      {/* 2. MARKAZ: KATTA AVTOMOBIL GARAJI (SHOWROOM)              */}
+      {/* ========================================================= */}
+      <div className="my-auto py-2 flex flex-col items-center justify-center z-10">
+        <CarShowcase car={currentCar} playerName={name} />
+      </div>
+
+      {/* ========================================================= */}
+      {/* 3. O'NG PASTKI BURCHAK: 2 TA ASOSIY HARAKAT TUGMASI       */}
+      {/* ========================================================= */}
+      <div className="w-full flex items-end justify-end gap-3 z-20 pt-2">
+        {/* 1-TUGMA: Guruhga qo'shilish */}
+        <button
+          type="button"
+          onClick={() => {
+            setErrorMsg('');
+            setShowJoinModal(true);
+          }}
+          className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 bg-slate-900/95 hover:bg-slate-850 border-2 border-cyan-500/60 hover:border-cyan-400 text-cyan-300 hover:text-white text-xs sm:text-sm font-black rounded-2xl shadow-xl shadow-cyan-950/60 hover:shadow-cyan-500/30 transition-all cursor-pointer active:scale-95 group"
+          title="Xona ID PIN kodi orqali guruhga ulanish"
         >
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-950 border border-emerald-500/60 flex items-center justify-center text-emerald-400 shadow-md">
-                <Trophy className="w-4 h-4 text-emerald-400" />
-              </div>
-              <span className="text-[10px] font-mono font-black text-emerald-300 bg-emerald-950/90 border border-emerald-600/80 px-2 py-0.5 rounded uppercase">
-                1. YAKKAXON MASHQ
-              </span>
-            </div>
-
-            <h3 className="text-sm sm:text-base font-black text-white mb-1">
-              Oʻzim Yozishim
-            </h3>
-            <p className="text-xs text-slate-300 leading-snug mb-3">
-              Mustaqil mashq qiling, 5000 ta soʻz boʻyicha botlar bilan poyga oʻynang va rekord oʻrnating.
-            </p>
-
-            {/* Qiyinlik darajasini tanlash */}
-            <div className="space-y-1 mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Poyga Qiyinligi:
-              </span>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setDifficulty('easy')}
-                  className={`py-1.5 px-1 text-center rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                    difficulty === 'easy'
-                      ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-sm'
-                      : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  🟢 Oson
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDifficulty('medium')}
-                  className={`py-1.5 px-1 text-center rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                    difficulty === 'medium'
-                      ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-sm'
-                      : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  🟡 Oʻrta
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDifficulty('hard')}
-                  className={`py-1.5 px-1 text-center rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                    difficulty === 'hard'
-                      ? 'bg-rose-500 text-white border-rose-400 shadow-sm'
-                      : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  🔴 Qiyin
-                </button>
-              </div>
-            </div>
-
-            {/* Masofani tanlash: 50m, 100m, 200m, 500m, 1000m */}
-            <div className="space-y-1 mt-2.5 mb-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Poyga Masofasi:
-                </span>
-                <span className="text-[10px] font-mono font-bold text-emerald-400">
-                  {soloDistance} metr
-                </span>
-              </div>
-              <div className="grid grid-cols-5 gap-1">
-                {[50, 100, 200, 500, 1000].map((dist) => (
-                  <button
-                    key={dist}
-                    type="button"
-                    onClick={() => {
-                      setSoloDistance(dist);
-                      try {
-                        localStorage.setItem('tg_user_dist', dist.toString());
-                      } catch {
-                        // ignore
-                      }
-                    }}
-                    className={`py-1 text-center rounded-lg border text-xs font-mono font-bold transition-all cursor-pointer ${
-                      soloDistance === dist
-                        ? 'bg-gradient-to-r from-emerald-400 to-green-500 text-slate-950 font-black border-emerald-300 shadow-sm shadow-emerald-500/30'
-                        : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                    }`}
-                  >
-                    {dist}m
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="w-7 h-7 rounded-xl bg-cyan-950/90 border border-cyan-500/50 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+            <Users className="w-4 h-4" />
           </div>
+          <div className="text-left leading-none">
+            <span className="block text-[9px] uppercase tracking-wider text-cyan-400 font-mono">PIN KOD BILAN</span>
+            <span className="text-xs sm:text-sm font-black tracking-tight">Guruhga Qoʻshilish</span>
+          </div>
+        </button>
 
-          <button
-            type="button"
-            onClick={handleSoloClick}
-            className="w-full mt-3 py-2.5 px-4 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-98 transition-all cursor-pointer"
-          >
-            <span>POYGANI BOSHLASH 🏁</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* REJIM 2: GURUH YARATISHIM (YANGI XONA OCHISH) */}
-        <form
-          onSubmit={handleCreateClick}
-          className={`p-3.5 sm:p-4 rounded-xl border-2 border-cyan-500/40 bg-gradient-to-b from-[#071d24]/95 to-[#041014]/95 flex flex-col justify-between text-left shadow-xl shadow-black/60 relative overflow-hidden backdrop-blur-md transition-all ${
-            mobileTab === 'create' ? 'block' : 'hidden md:flex'
-          }`}
+        {/* 2-TUGMA: O'ynash (Yakka Poyga) */}
+        <button
+          type="button"
+          onClick={() => setShowPlaySoloModal(true)}
+          className="flex items-center gap-2.5 px-6 sm:px-8 py-3 sm:py-3.5 bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-600 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-emerald-500/40 hover:shadow-emerald-500/60 transition-all cursor-pointer active:scale-95 group"
+          title="Yakka poyga sozlamalarini tanlash va o'yinni boshlash"
         >
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-500/60 flex items-center justify-center text-cyan-400 shadow-md">
-                <PlusCircle className="w-4 h-4 text-cyan-400" />
-              </div>
-              <span className="text-[10px] font-mono font-black text-cyan-300 bg-cyan-950/90 border border-cyan-600/80 px-2 py-0.5 rounded uppercase">
-                2. HOST (GURUH OCHISH)
-              </span>
+          <div className="w-8 h-8 rounded-xl bg-slate-950/20 border border-black/20 flex items-center justify-center text-slate-950 group-hover:scale-110 transition-transform">
+            <Play className="w-4 h-4 fill-current ml-0.5" />
+          </div>
+          <div className="text-left leading-none">
+            <span className="block text-[9px] uppercase tracking-wider text-slate-900/80 font-mono font-bold">START</span>
+            <span className="text-sm sm:text-base font-black tracking-tight">Oʻynash</span>
+          </div>
+          <ArrowRight className="w-4 h-4 stroke-[3] group-hover:translate-x-1 transition-transform ml-1 hidden xs:inline" />
+        </button>
+      </div>
+
+      {/* ========================================================= */}
+      {/* MODAL 1: SAYTGA ILK BOR TASHRIF BUYURGANDA ISM SO'RASH     */}
+      {/* ========================================================= */}
+      {showFirstTimeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-md bg-[#0a0f1d] border-2 border-cyan-500/60 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-cyan-950/80 border border-cyan-400/50 flex items-center justify-center text-3xl mx-auto shadow-lg shadow-cyan-500/20">
+              🏎️
+            </div>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                TYPING GROUPS ga Xush Kelibsiz!
+              </h3>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                Poygalarda ishtirok etish va natijalaringizni saqlash uchun ismingiz yoki poygachi taxallusingizni kiriting:
+              </p>
             </div>
 
-            <h3 className="text-sm sm:text-base font-black text-white mb-1">
-              Guruh Yaratishim
-            </h3>
-            <p className="text-xs text-slate-300 leading-snug mb-3">
-              Doʻstlaringiz uchun xona oching, 6 raqamli PIN kodni oling va bir vaqtda start bering.
-            </p>
-
-            <div className="space-y-1 mb-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                Guruh Nomi:
-              </label>
-              <input
-                type="text"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                placeholder="Guruh nomini kiriting..."
-                maxLength={30}
-                className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-lg text-white text-xs font-semibold outline-none"
-              />
-            </div>
-
-            <div className="space-y-1 mb-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Trassa Masofasi:
+            <form onSubmit={handleSaveFirstName} className="space-y-4 text-left">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Ismingiz:
                 </label>
-                <span className="text-[10px] font-mono font-bold text-cyan-400">
-                  {targetDistance} metr
-                </span>
+                <input
+                  type="text"
+                  value={tempFirstName}
+                  onChange={(e) => setTempFirstName(e.target.value)}
+                  placeholder="Masalan: Shoxrux, Azim, Champion..."
+                  maxLength={20}
+                  autoFocus
+                  required
+                  className="w-full px-4 py-3 bg-slate-900 border-2 border-slate-700 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30 rounded-xl text-white font-bold text-sm outline-none transition-all"
+                />
               </div>
-              <div className="grid grid-cols-5 gap-1">
-                {[50, 100, 200, 500, 1000].map((dist) => (
+
+              <button
+                type="submit"
+                disabled={!tempFirstName.trim()}
+                className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-cyan-500/30 transition-all cursor-pointer"
+              >
+                Saqlash va Boshlash 🚀
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 2: "O'YNASH" (YAKKA POYGA SOZLAMALARI: DARAJA & MASOFA) */}
+      {/* ========================================================= */}
+      {showPlaySoloModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg bg-[#0a0f1d] border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5">
+            {/* Yopish */}
+            <button
+              onClick={() => setShowPlaySoloModal(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                <Play className="w-5 h-5 fill-current" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Yakka Poyga Sozlamalari</h3>
+                <p className="text-xs text-slate-400">Qiyinlik darajasi va poyga masofasini tanlang</p>
+              </div>
+            </div>
+
+            {/* Qiyinlik darajasi: Oson, O'rta, Qiyin */}
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 font-mono">
+                Poyga Darajasi (Qiyinligi):
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'easy', label: 'Oson', desc: 'Sekin botlar (~15 WPM)', color: 'border-emerald-500 bg-emerald-950/40 text-emerald-300' },
+                  { id: 'medium', label: 'Oʻrta', desc: 'Balansli botlar (~28 WPM)', color: 'border-amber-500 bg-amber-950/40 text-amber-300' },
+                  { id: 'hard', label: 'Qiyin', desc: 'Tezkor botlar (~50 WPM)', color: 'border-rose-500 bg-rose-950/40 text-rose-300' }
+                ].map((item) => {
+                  const isSelected = soloDifficulty === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSoloDifficulty(item.id as DifficultyLevel)}
+                      className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? `${item.color} shadow-lg ring-1 ring-white/20 font-bold`
+                          : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-black text-sm">{item.label}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5" />}
+                      </div>
+                      <span className="text-[10px] block opacity-80">{item.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Masofa: 50, 100, 500, 1000, 1500 metr */}
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 font-mono">
+                Poyga Masofasi:
+              </label>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[50, 100, 500, 1000, 1500].map((dist) => {
+                  const isSelected = soloDistance === dist;
+                  return (
+                    <button
+                      key={dist}
+                      type="button"
+                      onClick={() => setSoloDistance(dist)}
+                      className={`py-3 px-2 rounded-xl border-2 text-center transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-emerald-400 bg-emerald-950/70 text-emerald-200 font-black shadow-md'
+                          : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="block text-sm font-black font-mono">{dist}m</span>
+                      <span className="text-[9px] block text-slate-500">
+                        {dist === 50 ? 'Tezkor' : dist === 100 ? 'Klassik' : dist === 500 ? 'Oʻrta' : dist === 1000 ? 'Uzoq' : 'Marafon'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Start tugmasi */}
+            <button
+              type="button"
+              onClick={handleConfirmStartSolo}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-black text-base rounded-2xl shadow-xl shadow-emerald-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>Poygani Boshlash ({soloDistance}m)</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 3: "GURUHGA QO'SHILISH" (6 RAQAMLI PIN KOD)          */}
+      {/* ========================================================= */}
+      {showJoinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-md bg-[#0a0f1d] border border-cyan-500/50 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4">
+            <button
+              onClick={() => setShowJoinModal(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Guruhga Qoʻshilish</h3>
+                <p className="text-xs text-slate-400">Doʻstingiz bergan 6 xonali xona ID kodini kiriting</p>
+              </div>
+            </div>
+
+            {errorMsg && (
+              <div className="p-2.5 bg-rose-950/90 border border-rose-500/60 rounded-xl text-rose-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmJoin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 font-mono text-center">
+                  6 Xonali Xona PIN Kodi:
+                </label>
+                <input
+                  type="text"
+                  value={joinPin}
+                  onChange={(e) => setJoinPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  maxLength={6}
+                  autoFocus
+                  required
+                  className="w-full text-center text-3xl font-black font-mono tracking-[0.4em] py-3.5 bg-slate-900 border-2 border-slate-700 focus:border-cyan-400 rounded-2xl text-cyan-300 outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={joinPin.trim().length !== 6}
+                className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-cyan-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>Guruhga Kirish</span>
+                <ArrowRight className="w-4 h-4 stroke-[3]" />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 4: "GURUH YARATISH" (NOMI, MASOFA VA KATTA ID)       */}
+      {/* ========================================================= */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg bg-[#0a0f1d] border border-cyan-500/50 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5">
+            <button
+              onClick={() => {
+                setShowCreateModal(false);
+                setCreatedRoomId(null);
+              }}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {!createdRoomId ? (
+              // 1-bosqich: Nom va Masofani kiritish
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
+                    <PlusCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white">Yangi Guruh Yaratish</h3>
+                    <p className="text-xs text-slate-400">Guruh nomi va poyga masofasini belgilang</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleConfirmCreateGroup} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Guruh Nomi:
+                    </label>
+                    <input
+                      type="text"
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                      placeholder="Masalan: Tezkor Poygachilar"
+                      maxLength={30}
+                      required
+                      className="w-full px-4 py-2.5 bg-slate-900 border-2 border-slate-700 focus:border-cyan-400 rounded-xl text-white font-bold text-sm outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-2 font-mono">
+                      Poyga Masofasi (Metrlarda):
+                    </label>
+                    <div className="grid grid-cols-5 gap-1.5 mb-2">
+                      {[50, 100, 500, 1000, 1500].map((dist) => (
+                        <button
+                          key={dist}
+                          type="button"
+                          onClick={() => setNewGroupDistance(dist)}
+                          className={`py-2 px-1 rounded-xl border text-center text-xs font-mono font-bold transition-all cursor-pointer ${
+                            newGroupDistance === dist
+                              ? 'border-cyan-400 bg-cyan-950 text-cyan-200'
+                              : 'border-slate-800 bg-slate-900/80 text-slate-400 hover:border-slate-700'
+                          }`}
+                        >
+                          {dist}m
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <button
-                    key={dist}
+                    type="submit"
+                    className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-cyan-500/30 transition-all cursor-pointer"
+                  >
+                    Xonani Yaratish va ID Olish 🚀
+                  </button>
+                </form>
+              </>
+            ) : (
+              // 2-bosqich: KATTA QILIB ID RAQAMINI KO'RSATISH
+              <div className="text-center space-y-4 py-2">
+                <div className="w-12 h-12 rounded-full bg-emerald-950/80 border border-emerald-400/50 flex items-center justify-center text-emerald-400 text-xl mx-auto shadow-lg shadow-emerald-500/20">
+                  <Check className="w-6 h-6 stroke-[3]" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white">Guruh Muvaffaqiyatli Yaratildi!</h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Doʻstlaringizga ushbu 6 xonali ID raqamini yuboring:
+                  </p>
+                </div>
+
+                {/* KATTA QILIB CHIQARILGAN XONA ID RAQAMI */}
+                <div className="p-4 bg-slate-950 border-2 border-cyan-400/80 rounded-2xl shadow-xl shadow-cyan-500/20 flex flex-col items-center justify-center">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 mb-1 font-bold">
+                    XONA PIN KODI
+                  </span>
+                  <span className="text-4xl sm:text-5xl font-black font-mono tracking-[0.3em] text-white">
+                    {createdRoomId}
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
                     type="button"
-                    onClick={() => setTargetDistance(dist)}
-                    className={`py-1 px-1 rounded-lg border text-[11px] font-mono font-bold transition-all cursor-pointer ${
-                      targetDistance === dist
-                        ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-md shadow-cyan-500/30'
-                        : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
+                    onClick={handleCopyCreatedPin}
+                    className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-mono font-bold text-white flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  >
+                    {copiedPin ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-cyan-400" />}
+                    <span>{copiedPin ? 'Nusxalandi!' : 'Kodni Nusxalash'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleEnterCreatedRoom}
+                    className="flex-1 py-3 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-300 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <span>Poyga Xonasiga Kirish</span>
+                    <ArrowRight className="w-4 h-4 stroke-[3]" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 5: MASHINANI ALMASHTIRISH (GARAGE)                   */}
+      {/* ========================================================= */}
+      {showCarModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-2xl bg-[#0a0f1d] border border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-4">
+            <button
+              onClick={() => setShowCarModal(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-950/80 border border-amber-400/40 flex items-center justify-center text-amber-300">
+                <Car className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Avtomobillar Garaji</h3>
+                <p className="text-xs text-slate-400">Poyga uchun oʻzingizga yoqqan superkarni tanlang</p>
+              </div>
+            </div>
+
+            {/* 10 ta avtomobil ro'yxati */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 max-h-[60vh] overflow-y-auto p-1">
+              {FAMOUS_CARS.map((car: RacingCar) => {
+                const isSelected = selectedCarId === car.id;
+                return (
+                  <button
+                    key={car.id}
+                    type="button"
+                    onClick={() => handleSelectCar(car.id)}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between cursor-pointer ${
+                      isSelected
+                        ? 'border-amber-400 bg-amber-950/60 shadow-lg shadow-amber-500/20 ring-1 ring-amber-400'
+                        : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-850'
                     }`}
                   >
-                    {dist}m
+                    <div className="flex items-center justify-between mb-2">
+                      <span
+                        className="w-4 h-4 rounded-full border border-slate-700 shadow-sm shrink-0"
+                        style={{ backgroundColor: car.bodyColor }}
+                      />
+                      <span className="text-[10px] font-mono font-black text-amber-400">
+                        {car.powerHp} HP
+                      </span>
+                    </div>
+
+                    <div className="min-w-0">
+                      <span className="text-xs font-black text-white block leading-tight truncate">
+                        {car.name}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block truncate font-mono uppercase mt-0.5">
+                        {car.brand}
+                      </span>
+                    </div>
+
+                    {isSelected && (
+                      <div className="mt-2 text-[9px] font-mono font-bold text-amber-300 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-amber-400" /> Tanlangan
+                      </div>
+                    )}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </div>
+        </div>
+      )}
 
-          <button
-            type="submit"
-            className="w-full mt-3 py-2.5 px-4 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-98 transition-all cursor-pointer"
-          >
-            <span>GURUHNI YARATISH 👑</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </form>
+      {/* ========================================================= */}
+      {/* MODAL 6: ISMNI TAHRIRLASH MODALI                           */}
+      {/* ========================================================= */}
+      {showEditNameModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-sm bg-[#0a0f1d] border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
+            <button
+              onClick={() => setShowEditNameModal(false)}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
-        {/* REJIM 3: GURUHGA QO'SHILISHIM (KOD BILAN ULANISH) */}
-        <form
-          onSubmit={handleJoinClick}
-          className={`p-3.5 sm:p-4 rounded-xl border-2 border-blue-500/40 bg-gradient-to-b from-[#08192b]/95 to-[#050e18]/95 flex flex-col justify-between text-left shadow-xl shadow-black/60 relative overflow-hidden backdrop-blur-md transition-all ${
-            mobileTab === 'join' ? 'block' : 'hidden md:flex'
-          }`}
-        >
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-950 border border-blue-500/60 flex items-center justify-center text-blue-400 shadow-md">
-                <Users className="w-4 h-4 text-blue-400" />
-              </div>
-              <span className="text-[10px] font-mono font-black text-blue-300 bg-blue-950/90 border border-blue-600/80 px-2 py-0.5 rounded uppercase">
-                3. GURUHGA ULANISH
-              </span>
-            </div>
+            <h3 className="text-base font-black text-white">Haydovchi Ismini Oʻzgartirish</h3>
 
-            <h3 className="text-sm sm:text-base font-black text-white mb-1">
-              Guruhga Qoʻshilishim
-            </h3>
-            <p className="text-xs text-slate-300 leading-snug mb-3">
-              Doʻstingiz ochgan 6 raqamli xona kodini (PIN) kiriting va poygaga ulaning.
-            </p>
-
-            <div className="space-y-1 mb-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                6 Raqamli Xona PIN Kodi:
-              </label>
+            <form onSubmit={handleSaveEditedName} className="space-y-3">
               <input
                 type="text"
-                value={joinPin}
-                onChange={(e) => setJoinPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="Masalan: 489201"
-                maxLength={6}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 focus:border-blue-400 rounded-lg text-white font-mono text-center text-lg tracking-widest font-black outline-none"
+                value={editNameInput}
+                onChange={(e) => setEditNameInput(e.target.value)}
+                placeholder="Yangi ism..."
+                maxLength={20}
+                autoFocus
+                required
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-xl text-white font-bold text-sm outline-none"
               />
-            </div>
-          </div>
 
-          <button
-            type="submit"
-            className="w-full mt-3 py-2.5 px-4 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white font-black text-xs sm:text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 active:scale-98 transition-all cursor-pointer"
-          >
-            <span>XONAGA ULANISH 🚀</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </form>
-      </section>
-
-      {/* Mashina tanlash modali */}
-      {showCarModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-[#090e1c] border border-cyan-500/40 rounded-2xl shadow-2xl p-4 text-slate-100 flex flex-col gap-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Car className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm font-black text-white">Poyga Mashinasini Tanlang</h3>
-              </div>
               <button
-                type="button"
-                onClick={() => setShowCarModal(false)}
-                className="text-slate-400 hover:text-white text-xs font-bold px-2 py-1 bg-slate-800 rounded-lg cursor-pointer"
+                type="submit"
+                className="w-full py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
               >
-                Yopish
+                Saqlash
               </button>
-            </div>
-
-            {/* Tanlangan superkarning realistik jonli ko'rinishi */}
-            <div className="py-2 px-4 bg-slate-950/90 border border-cyan-500/30 rounded-xl flex items-center justify-center overflow-hidden">
-              <CarSprite
-                carId={selectedCarId}
-                playerName={name || 'Siz'}
-                currentWpm={60}
-                isUser={true}
-                rank={1}
-              />
-            </div>
-
-            <CarSelector
-              selectedCarId={selectedCarId}
-              onSelectCar={handleCarChange}
-            />
+            </form>
           </div>
         </div>
       )}

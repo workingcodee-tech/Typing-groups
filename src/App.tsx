@@ -197,12 +197,18 @@ export default function App() {
   };
 
   // Yangi guruh yaratish (vaqtinchalik 6 raqamlik ID)
-  const handleCreateGroup = async (groupName: string, userName: string, carId: string, targetDistance: number = 100) => {
+  const handleCreateGroup = async (
+    groupName: string,
+    userName: string,
+    carId: string,
+    targetDistance: number = 100,
+    customId?: string
+  ) => {
     setLoadingAction('Yangi xona va 6 raqamlik ID yaratilmoqda...');
     setGlobalError(null);
 
     try {
-      const random6DigitId = String(Math.floor(100000 + Math.random() * 900000));
+      const random6DigitId = customId || String(Math.floor(100000 + Math.random() * 900000));
       // So'zlar yetishmay qolmasligi uchun kamida 150-250 ta so'z (3-4 barobar ko'p) yaratamiz
       const wordsCount = Math.max(150, Math.ceil(targetDistance * 1.5));
       const roomWords = generate5000Words(wordsCount);
