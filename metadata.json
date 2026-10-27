@@ -1,0 +1,6 @@
+{
+  "name": "TYPING GROUPS",
+  "description": "Competitive multiplayer typing races, speed drills, and community type groups by WORKING CODE.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

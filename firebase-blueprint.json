@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "Room": {
+      "title": "Room",
+      "description": "Vaqtinchalik poyga guruhi xonasi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 16 },
+        "name": { "type": "string", "maxLength": 64 },
+        "creatorId": { "type": "string", "maxLength": 128 },
+        "creatorName": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["waiting", "starting", "racing", "finished"] },
+        "round": { "type": "number", "description": "Joriy bosqich raqami" },
+        "startTimeMs": { "type": "number", "description": "Millisekundlik sinxron start vaqti" },
+        "words": { "type": "array", "description": "Musobaqa so'zlari" },
+        "createdAt": { "type": "string" },
+        "createdAtMs": { "type": "number", "description": "Xona ochilgan millisekund" },
+        "updatedAtMs": { "type": "number", "description": "Oxirgi yangilanish millisekundi" },
+        "maxMembers": { "type": "number" },
+        "targetDistance": { "type": "number" }
+      },
+      "required": ["id", "name", "creatorId", "status"]
+    },
+    "Participant": {
+      "title": "Participant",
+      "description": "Poyga ishtirokchisi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 64 },
+        "carId": { "type": "string", "maxLength": 32 },
+        "carName": { "type": "string", "maxLength": 64 },
+        "progress": { "type": "number" },
+        "currentWpm": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "totalChars": { "type": "number" },
+        "errors": { "type": "number" },
+        "finished": { "type": "boolean" },
+        "finishTime": { "type": "number" },
+        "finishTimeSeconds": { "type": "number" },
+        "finishedAt": { "type": "number" },
+        "finishRank": { "type": "number" },
+        "isCreator": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "carId"]
+    }
+  },
+  "firestore": {
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Vaqtinchalik poyga xonalari"
+    },
+    "/rooms/{roomId}/participants/{participantId}": {
+      "schema": "Participant",
+      "description": "Xona ishtirokchilari"
+    }
+  }
+}
