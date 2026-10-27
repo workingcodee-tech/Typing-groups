@@ -231,7 +231,7 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
   const handleSetTargetDistance = async (newDistance: number) => {
     if (!isCreator || newDistance < 20) return;
     try {
-      const wordsCount = Math.max(30, Math.ceil(newDistance / 4));
+      const wordsCount = Math.max(150, Math.ceil(newDistance * 1.5));
       const newWords = generate5000Words(wordsCount);
       const roomRef = doc(db, 'rooms', roomId);
       await updateDoc(roomRef, {
@@ -299,7 +299,7 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
 
     try {
       const targetMeters = roomData?.targetDistance || 100;
-      const targetWordsCount = Math.max(30, Math.ceil(targetMeters / 4));
+      const targetWordsCount = Math.max(150, Math.ceil(targetMeters * 1.5));
       const newWords = generate5000Words(targetWordsCount);
       const nextRoundNumber = (roomData?.round || 1) + 1;
 

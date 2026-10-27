@@ -3,6 +3,7 @@ import { sounds } from '../utils/soundEffects';
 import { RotateCcw, Flag } from 'lucide-react';
 import { RaceStats } from '../types';
 import { AnalogSpeedometer } from './AnalogSpeedometer';
+import { generate5000Words } from '../data/words';
 
 interface WordsTypingArenaProps {
   wordsList: string[]; // 5000 ta tasodifiy inglizcha so'zlar
@@ -57,6 +58,26 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [isFinished, setIsFinished] = useState<boolean>(false);
   const [isFocused, setIsFocused] = useState<boolean>(true);
+
+  // So'zlar tugab qolmasligi uchun aktiv so'zlar ro'yxati (har doim kamida 250-500 ta so'z)
+  const [activeWords, setActiveWords] = useState<string[]>(() => {
+    if (wordsList && wordsList.length >= 120) return wordsList;
+    return wordsList && wordsList.length > 0
+      ? [...wordsList, ...generate5000Words(300)]
+      : generate5000Words(500);
+  });
+
+  useEffect(() => {
+    if (wordsList && wordsList.length > 0) {
+      if (wordsList.length < 150) {
+        setActiveWords([...wordsList, ...generate5000Words(300)]);
+      } else {
+        setActiveWords(wordsList);
+      }
+    } else {
+      setActiveWords(generate5000Words(500));
+    }
+  }, [wordsList]);
 
   // Statistika
   const [totalCorrectChars, setTotalCorrectChars] = useState<number>(0);
@@ -229,7 +250,7 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
 
   // So'zni yakunlash (Kompyuterda Space yoki Mobil qurilmada probel/bo'sh joy bosilganda)
   const commitCurrentWord = useCallback((inputVal: string) => {
-    const currentWord = wordsList[currentWordIndex] || '';
+    const currentWord = activeWords[currentWordIndex] || '';
     const cleanInput = (inputVal || currentInput || '').trim();
 
     // Hatto hech narsa yozilmagan bo'lsa ham (masalan, so'zni o'tkazib yuborish uchun bo'sh joy bosilsa), keyingi so'zga o'tkazish
@@ -271,6 +292,12 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
 
     sounds.playKey(' ', true, !isMatch);
     const nextWordIdx = currentWordIndex + 1;
+
+    // Agar so'zlar tugab qolish arafasida bo'lsa, avtomatik yana 150 ta yangi so'z qo'shish (hech qachon tugamaydi)
+    if (nextWordIdx >= activeWords.length - 15) {
+      setActiveWords((prev) => [...prev, ...generate5000Words(150)]);
+    }
+
     setCurrentWordIndex(nextWordIdx);
     setCurrentInput('');
     if (inputRef.current) {
@@ -300,7 +327,7 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
     if (nextCorrect >= targetChars) {
       finishSession(seconds, nextCorrect);
     }
-  }, [currentWordIndex, currentInput, wordsList, totalCorrectChars, totalIncorrectChars, targetChars, distance, startTime, finishSession]);
+  }, [currentWordIndex, currentInput, activeWords, totalCorrectChars, totalIncorrectChars, targetChars, distance, startTime, finishSession]);
 
   // Mobil klaviaturalarda Space / Bo'sh joyni ushlash (beforeinput - mobil brauzerlarda eng aniq usul)
   const handleBeforeInput = (e: React.FormEvent<HTMLInputElement>) => {
@@ -468,7 +495,7 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
     return `${mins}:${secs < 10 ? '0' : ''}${secs}.${tenths}`;
   };
 
-  const displayWords = wordsList.slice(0, 200);
+  const displayWords = activeWords;
 
   return (
     <div className="w-full flex flex-col gap-1.5 shrink-0">

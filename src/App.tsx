@@ -203,7 +203,8 @@ export default function App() {
 
     try {
       const random6DigitId = String(Math.floor(100000 + Math.random() * 900000));
-      const wordsCount = Math.max(30, Math.ceil(targetDistance / 4));
+      // So'zlar yetishmay qolmasligi uchun kamida 150-250 ta so'z (3-4 barobar ko'p) yaratamiz
+      const wordsCount = Math.max(150, Math.ceil(targetDistance * 1.5));
       const roomWords = generate5000Words(wordsCount);
       const myId = currentUser.id;
 
