@@ -100,7 +100,7 @@ export const HighwayRaceTrack: React.FC<HighwayRaceTrackProps> = ({
             return (
               <div
                 key={racer.id}
-                className={`relative h-15 sm:h-16 flex items-center px-4 transition-colors ${
+                className={`relative h-18 sm:h-20 flex items-center px-4 transition-colors ${
                   racer.isUser ? 'bg-cyan-950/20' : ''
                 }`}
               >

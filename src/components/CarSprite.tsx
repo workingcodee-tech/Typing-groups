@@ -35,17 +35,14 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
 
       {/* 2. Haqiqiy Supercar / Sport Avtomobili (Realistik Side-Profile) */}
       <div className="relative w-28 h-12 sm:w-32 sm:h-14 flex items-center justify-center filter drop-shadow-[0_6px_10px_rgba(0,0,0,0.85)]">
-        {/* Yuqori tezlikdagi nitro alangasi va tutun effekti */}
+        {/* Yuqori tezlikdagi toza sport nitro alangasi */}
         {isMoving && (
-          <div className="absolute -left-7 top-[62%] -translate-y-1/2 flex items-center pointer-events-none">
-            {/* Nitro plazma alangasi */}
+          <div className="absolute -left-5 top-[60%] -translate-y-1/2 flex items-center pointer-events-none">
             <span
-              className={`h-2 bg-gradient-to-l from-cyan-400 via-blue-500 to-transparent rounded-full animate-pulse ${
-                isHighSpeed ? 'w-6 opacity-100 shadow-[0_0_8px_#38bdf8]' : 'w-3 opacity-80'
+              className={`h-1.5 bg-gradient-to-l from-cyan-400 via-blue-500 to-transparent rounded-full ${
+                isHighSpeed ? 'w-5 opacity-90 shadow-[0_0_6px_#38bdf8]' : 'w-2.5 opacity-70'
               }`}
             />
-            {/* Tezlik tutun halqalari */}
-            <span className="w-2.5 h-1.5 bg-white/40 rounded-full blur-[1px] -ml-1 animate-ping" />
           </div>
         )}
 
@@ -314,9 +311,8 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
           <line x1="104" y1="28" x2="106" y2="42" stroke="#090d16" strokeWidth="2.5" />
           <line x1="135" y1="28" x2="160" y2="42" stroke="#090d16" strokeWidth="2" />
 
-          {/* Haydovchi shlemi (Kaskali poygachi silueti) */}
-          <circle cx="94" cy="35" r="4.5" fill="#f8fafc" />
-          <path d="M 94 34 Q 98 34 98 37 L 94 37 Z" fill="#0284c7" />
+          {/* Qoraytirilgan sport kokpit oynasi va orqa shaffof aks */}
+          <path d="M 72 40 L 98 40 L 96 30 Q 82 29 72 40 Z" fill="#021422" opacity="0.9" />
 
           {/* 8. Old Kristall Fara (LED Matrix Projector) */}
           <polygon
@@ -336,7 +332,7 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
           <path d="M 37 63 A 19 19 0 0 1 79 63 Z" fill="#090d16" />
           <path d="M 151 63 A 19 19 0 0 1 193 63 Z" fill="#090d16" />
 
-          {/* 11. ORQA G'ILDIRAK (Shina, teshikli po'lat rotor, sport kaliperi va qotishma disk) */}
+          {/* 11. ORQA G'ILDIRAK (Shina, po'lat rotor, sport kaliperi va qotishma disk) */}
           <g transform="translate(58, 63)">
             {/* Shina (Pirelli sport kauchuk) */}
             <circle cx="0" cy="0" r="16.5" fill="#0b0f19" stroke="#1e293b" strokeWidth="1.2" />
@@ -346,7 +342,7 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
             <circle cx="0" cy="0" r="10.5" fill={`url(#rotorGrad-${car.id})`} />
             <circle cx="0" cy="0" r="9" fill="none" stroke="#475569" strokeWidth="0.8" strokeDasharray="1.5,1.5" />
 
-            {/* Sport Tormoz Kaliperi (Brembo uslubida yorqin rangda) */}
+            {/* Sport Tormoz Kaliperi (Brembo) */}
             <path
               d="M -9 -7 Q -6 -10 -2 -10 L -2 -4 Q -6 -4 -9 -1 Z"
               fill={car.caliperColor || '#ef4444'}
@@ -354,21 +350,21 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
               strokeWidth="0.5"
             />
 
-            {/* Qotishma disk (Alloy Rim) */}
+            {/* Qotishma sport disk (Alloy Rim) */}
             <circle cx="0" cy="0" r="10" fill="none" stroke={`url(#rimGrad-${car.id})`} strokeWidth="1.5" />
             <circle cx="0" cy="0" r="4.5" fill="#0f172a" stroke="#94a3b8" strokeWidth="0.8" />
             <circle cx="0" cy="0" r="2" fill="#e2e8f0" />
 
-            {/* 5 ta sport spitsa (Spokes) */}
-            <g className={isMoving ? 'animate-spin origin-center' : ''} style={{ animationDuration: '0.6s' }}>
-              <line x1="0" y1="-9.5" x2="0" y2="9.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="-9" y1="-3" x2="9" y2="3" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="-6" y1="7.5" x2="6" y2="-7.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="6" y1="7.5" x2="-6" y2="-7.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
+            {/* 6 ta markaziy sport spitsa (Spokes - markazga mustahkamlangan, yulduzcha hosil qilmaydi) */}
+            <g>
+              <line x1="0" y1="-8.5" x2="0" y2="8.5" stroke="#cbd5e1" strokeWidth="1.4" strokeLinecap="round" />
+              <line x1="-8.5" y1="0" x2="8.5" y2="0" stroke="#cbd5e1" strokeWidth="1.4" strokeLinecap="round" />
+              <line x1="-6" y1="-6" x2="6" y2="6" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1="-6" y1="6" x2="6" y2="-6" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" />
             </g>
           </g>
 
-          {/* 12. OLD G'ILDIRAK (Shina, teshikli po'lat rotor, sport kaliperi va qotishma disk) */}
+          {/* 12. OLD G'ILDIRAK (Shina, po'lat rotor, sport kaliperi va qotishma disk) */}
           <g transform="translate(172, 63)">
             {/* Shina */}
             <circle cx="0" cy="0" r="16.5" fill="#0b0f19" stroke="#1e293b" strokeWidth="1.2" />
@@ -391,28 +387,28 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
             <circle cx="0" cy="0" r="4.5" fill="#0f172a" stroke="#94a3b8" strokeWidth="0.8" />
             <circle cx="0" cy="0" r="2" fill="#e2e8f0" />
 
-            {/* 5 ta sport spitsa */}
-            <g className={isMoving ? 'animate-spin origin-center' : ''} style={{ animationDuration: '0.6s' }}>
-              <line x1="0" y1="-9.5" x2="0" y2="9.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="-9" y1="-3" x2="9" y2="3" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="-6" y1="7.5" x2="6" y2="-7.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="6" y1="7.5" x2="-6" y2="-7.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
+            {/* 6 ta markaziy sport spitsa */}
+            <g>
+              <line x1="0" y1="-8.5" x2="0" y2="8.5" stroke="#cbd5e1" strokeWidth="1.4" strokeLinecap="round" />
+              <line x1="-8.5" y1="0" x2="8.5" y2="0" stroke="#cbd5e1" strokeWidth="1.4" strokeLinecap="round" />
+              <line x1="-6" y1="-6" x2="6" y2="6" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" />
+              <line x1="-6" y1="6" x2="6" y2="-6" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" />
             </g>
           </g>
         </svg>
       </div>
 
-      {/* 3. Mashina ostida haydovchi ismi va avtomobil modeli */}
-      <div className="mt-1 text-center flex flex-col items-center">
+      {/* 3. Mashina ostida haydovchi ismi va avtomobil modeli (Bitta qatorda, qo'shni yo'laklarga xalaqit bermaydi) */}
+      <div className="mt-1 flex items-center justify-center gap-1 px-1.5 py-0.5 bg-slate-950/80 border border-slate-800/80 rounded-md shadow-md max-w-[130px] truncate leading-none">
         <span
-          className={`text-[10px] sm:text-[11px] font-black tracking-tight font-sans drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] truncate max-w-[100px] block ${
-            isUser ? 'text-white' : 'text-slate-300'
+          className={`text-[10px] sm:text-[11px] font-bold tracking-tight truncate ${
+            isUser ? 'text-emerald-300 font-extrabold' : 'text-slate-200'
           }`}
         >
           {playerName}
         </span>
-        <span className="text-[8px] font-mono font-bold text-cyan-400/90 tracking-wider uppercase block">
-          {car.shortLabel}
+        <span className="text-[8px] font-mono font-semibold text-cyan-400 shrink-0">
+          • {car.shortLabel}
         </span>
       </div>
     </div>
