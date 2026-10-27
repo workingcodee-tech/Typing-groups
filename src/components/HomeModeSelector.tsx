@@ -4,6 +4,15 @@ import { FAMOUS_CARS, RacingCar } from '../data/cars';
 import { CarShowcase } from './CarShowcase';
 import { DifficultyLevel } from '../types';
 import { SwitchSoundType } from '../utils/soundEffects';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
+
+interface ModalParticipant {
+  id: string;
+  name: string;
+  carId: string;
+  isCreator?: boolean;
+}
 
 interface HomeModeSelectorProps {
   currentUser: {
@@ -51,9 +60,35 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
   const [newGroupName, setNewGroupName] = useState<string>('Tezkor Poygachilar');
   const [newGroupDistance, setNewGroupDistance] = useState<number>(100);
   const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
+  const [modalParticipants, setModalParticipants] = useState<ModalParticipant[]>([]);
   const [isCreatingGroup, setIsCreatingGroup] = useState<boolean>(false);
   const [createGroupError, setCreateGroupError] = useState<string>('');
   const [copiedPin, setCopiedPin] = useState<boolean>(false);
+
+  // Xona yaratilgach, guruhga qo'shilgan ishtirokchilarni real vaqt rejimida (jonli) kuzatish
+  useEffect(() => {
+    if (!createdRoomId) {
+      setModalParticipants([]);
+      return;
+    }
+
+    const participantsRef = collection(db, 'rooms', createdRoomId, 'participants');
+    const unsubscribe = onSnapshot(participantsRef, (snapshot) => {
+      const list: ModalParticipant[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        list.push({
+          id: data.id || docSnap.id,
+          name: data.name || 'Poygachi',
+          carId: data.carId || 'bmw',
+          isCreator: data.isCreator || false
+        });
+      });
+      setModalParticipants(list);
+    });
+
+    return () => unsubscribe();
+  }, [createdRoomId]);
 
   const [showCarModal, setShowCarModal] = useState<boolean>(false);
   const [showEditNameModal, setShowEditNameModal] = useState<boolean>(false);
@@ -623,6 +658,73 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
                   <span className="text-4xl sm:text-5xl font-black font-mono tracking-[0.3em] text-white">
                     {createdRoomId}
                   </span>
+                </div>
+
+                {/* GURUHGA QO'SHILGAN FOYDALANUVCHILAR JADVALI */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 text-left space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-3.5 h-3.5 text-cyan-400" />
+                      <span className="text-xs font-bold text-white uppercase font-mono tracking-wider">
+                        Guruh A'zolari ({modalParticipants.length}/10)
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/40">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      <span>Jonli</span>
+                    </div>
+                  </div>
+
+                  {/* Foydalanuvchilar Jadvali */}
+                  <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/70 max-h-40 overflow-y-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="text-[10px] text-slate-400 uppercase font-mono bg-slate-900/90 border-b border-slate-800">
+                        <tr>
+                          <th className="py-1.5 px-2.5">#</th>
+                          <th className="py-1.5 px-2.5">Poygachi Ismi</th>
+                          <th className="py-1.5 px-2.5">Mashina</th>
+                          <th className="py-1.5 px-2.5 text-right">Holat</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-850">
+                        {modalParticipants.map((p, idx) => {
+                          const pCar = FAMOUS_CARS.find(c => c.id === p.carId) || FAMOUS_CARS[0];
+                          return (
+                            <tr key={p.id} className="hover:bg-slate-900/50 transition-colors">
+                              <td className="py-1.5 px-2.5 font-mono text-slate-500 font-bold">{idx + 1}</td>
+                              <td className="py-1.5 px-2.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-white truncate max-w-[120px]">{p.name}</span>
+                                  {p.isCreator && (
+                                    <span className="px-1.5 py-0.2 bg-amber-950 border border-amber-500/50 text-amber-300 rounded text-[9px] font-mono font-bold">
+                                      Host
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-1.5 px-2.5">
+                                <div className="flex items-center gap-1.5 text-slate-300">
+                                  <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: pCar.bodyColor }} />
+                                  <span className="truncate max-w-[100px] font-mono text-[11px]">{pCar.shortLabel}</span>
+                                </div>
+                              </td>
+                              <td className="py-1.5 px-2.5 text-right">
+                                <span className="text-[10px] font-mono font-bold text-emerald-400">
+                                  Tayyor ✓
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {modalParticipants.length <= 1 && (
+                    <p className="text-[11px] text-slate-400 text-center animate-pulse pt-1">
+                      ⏳ Doʻstlaringiz kodni kiritib ulanishini kutilmoqda...
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
