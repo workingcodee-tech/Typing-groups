@@ -196,19 +196,18 @@ export default function App() {
     }
   };
 
-  // Yangi guruh yaratish (vaqtinchalik 6 raqamlik ID)
+  // Yangi guruh yaratish (Xona Firestore bazasida to'liq tayyor bo'lgach ID qaytaradi)
   const handleCreateGroup = async (
     groupName: string,
     userName: string,
     carId: string,
     targetDistance: number = 100,
-    customId?: string
-  ) => {
-    setLoadingAction('Yangi xona va 6 raqamlik ID yaratilmoqda...');
+    enterImmediately: boolean = true
+  ): Promise<string | null> => {
     setGlobalError(null);
 
     try {
-      const random6DigitId = customId || String(Math.floor(100000 + Math.random() * 900000));
+      const random6DigitId = String(Math.floor(100000 + Math.random() * 900000));
       // So'zlar yetishmay qolmasligi uchun kamida 150-250 ta so'z (3-4 barobar ko'p) yaratamiz
       const wordsCount = Math.max(150, Math.ceil(targetDistance * 1.5));
       const roomWords = generate5000Words(wordsCount);
@@ -265,13 +264,21 @@ export default function App() {
         isCreator: true
       });
 
-      setViewState('room');
+      if (enterImmediately) {
+        setViewState('room');
+      }
       setMultiplayerModalMode(null);
+      return random6DigitId;
     } catch (e: any) {
       console.error("Guruh yaratishda xatolik:", e);
       setGlobalError('Guruh yaratishda xatolik yuz berdi. Iltimos, qayta urinib koʻring.');
-    } finally {
-      setLoadingAction(null);
+      return null;
+    }
+  };
+
+  const handleEnterCreatedRoom = () => {
+    if (activeRoom) {
+      setViewState('room');
     }
   };
 
@@ -310,6 +317,7 @@ export default function App() {
               onStartSolo={handleStartSolo}
               onJoinGroup={handleJoinGroup}
               onCreateGroup={handleCreateGroup}
+              onEnterCreatedRoom={handleEnterCreatedRoom}
               soundType={soundType}
               onToggleSound={handleToggleSound}
               initialRoomId={initialRoomParam}

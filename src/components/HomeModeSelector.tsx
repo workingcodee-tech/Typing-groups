@@ -14,7 +14,8 @@ interface HomeModeSelectorProps {
   onUpdateUser: (name: string, carId: string) => void;
   onStartSolo: (userName: string, carId: string, difficulty: DifficultyLevel, distance?: number) => void;
   onJoinGroup: (roomId: string, userName: string, carId: string) => void;
-  onCreateGroup: (groupName: string, userName: string, carId: string, targetDistance?: number, customId?: string) => void;
+  onCreateGroup: (groupName: string, userName: string, carId: string, targetDistance?: number, enterImmediately?: boolean) => Promise<string | null>;
+  onEnterCreatedRoom: () => void;
   soundType: SwitchSoundType;
   onToggleSound: () => void;
   initialRoomId?: string;
@@ -26,6 +27,7 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
   onStartSolo,
   onJoinGroup,
   onCreateGroup,
+  onEnterCreatedRoom,
   soundType,
   onToggleSound,
   initialRoomId = ''
@@ -49,6 +51,8 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
   const [newGroupName, setNewGroupName] = useState<string>('Tezkor Poygachilar');
   const [newGroupDistance, setNewGroupDistance] = useState<number>(100);
   const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
+  const [isCreatingGroup, setIsCreatingGroup] = useState<boolean>(false);
+  const [createGroupError, setCreateGroupError] = useState<string>('');
   const [copiedPin, setCopiedPin] = useState<boolean>(false);
 
   const [showCarModal, setShowCarModal] = useState<boolean>(false);
@@ -139,20 +143,36 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
     onJoinGroup(clean, name, selectedCarId);
   };
 
-  // Guruh yaratish (1-bosqich: 6 xonali ID ni generatsiya qilish va katta qilib modalda ko'rsatish)
-  const handleConfirmCreateGroup = (e: React.FormEvent) => {
+  // Guruh yaratish (Faqat baza to'liq yaratilib tayyor bo'lgach ID modalga chiqadi)
+  const handleConfirmCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
-    const generatedId = String(Math.floor(100000 + Math.random() * 900000));
-    setCreatedRoomId(generatedId);
+    setIsCreatingGroup(true);
+    setCreateGroupError('');
+
+    const gName = newGroupName.trim() || 'Tezkor Poygachilar';
+    const dist = Math.max(50, Math.min(1500, newGroupDistance));
+
+    try {
+      // 1. Avval Firestore bazasida xonani to'liq yaratamiz
+      const newId = await onCreateGroup(gName, name, selectedCarId, dist, false);
+      if (newId) {
+        // 2. FAQAT XONA BAZADA TAYYOR BO'LGACH ID CHIQARILADI
+        setCreatedRoomId(newId);
+      } else {
+        setCreateGroupError('Xonani yaratishda xatolik yuz berdi. Qayta urinib koʻring.');
+      }
+    } catch (err) {
+      setCreateGroupError('Baza bilan aloqa oʻrnatib boʻlmadi.');
+    } finally {
+      setIsCreatingGroup(false);
+    }
   };
 
   // 2-bosqich: Katta ID ko'rsatilgach, xonaga kirish
   const handleEnterCreatedRoom = () => {
-    if (!createdRoomId) return;
-    const gName = newGroupName.trim() || 'Tezkor Poygachilar';
-    const dist = Math.max(50, Math.min(1500, newGroupDistance));
     setShowCreateModal(false);
-    onCreateGroup(gName, name, selectedCarId, dist, createdRoomId);
+    setCreatedRoomId(null);
+    onEnterCreatedRoom();
   };
 
   const handleCopyCreatedPin = () => {
@@ -559,11 +579,26 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
                     </div>
                   </div>
 
+                  {createGroupError && (
+                    <div className="p-2.5 bg-rose-950/90 border border-rose-500/60 rounded-xl text-rose-300 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{createGroupError}</span>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-cyan-500/30 transition-all cursor-pointer"
+                    disabled={isCreatingGroup}
+                    className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-60 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-cyan-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                    Xonani Yaratish va ID Olish 🚀
+                    {isCreatingGroup ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                        <span>Bazada Yaratilmoqda...</span>
+                      </>
+                    ) : (
+                      <span>Xonani Yaratish va ID Olish 🚀</span>
+                    )}
                   </button>
                 </form>
               </>
