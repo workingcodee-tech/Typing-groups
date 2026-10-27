@@ -128,8 +128,13 @@ export default function App() {
   };
 
   // Guruhga qo'shilish (6 raqamli ID orqali)
-  const handleJoinGroup = async (roomId: string, userName: string, carId: string) => {
-    setLoadingAction('Xonaga ulanilmoqda...');
+  const handleJoinGroup = async (
+    roomId: string,
+    userName: string,
+    carId: string,
+    enterImmediately: boolean = true
+  ): Promise<{ success: boolean; error?: string }> => {
+    setGlobalError(null);
     try {
       const roomRef = doc(db, 'rooms', roomId);
       const participantsRef = collection(db, 'rooms', roomId, 'participants');
@@ -141,15 +146,15 @@ export default function App() {
       ]);
 
       if (!roomSnap.exists()) {
-        setGlobalError(`"${roomId}" raqamli xona topilmadi. 6 raqamli ID toʻgʻri kiritilganini tekshiring.`);
-        setLoadingAction(null);
-        return;
+        const msg = `"${roomId}" raqamli xona topilmadi. 6 raqamli ID toʻgʻri kiritilganini tekshiring.`;
+        setGlobalError(msg);
+        return { success: false, error: msg };
       }
 
       if (participantsSnap.size >= 10) {
-        setGlobalError('Kechirasiz, ushbu guruh toʻlgan (maksimal 10 ta ishtirokchi).');
-        setLoadingAction(null);
-        return;
+        const msg = 'Kechirasiz, ushbu guruh toʻlgan (maksimal 10 ta ishtirokchi).';
+        setGlobalError(msg);
+        return { success: false, error: msg };
       }
 
       const myId = currentUser.id;
@@ -186,11 +191,16 @@ export default function App() {
         isCreator: false
       });
 
-      setViewState('room');
+      if (enterImmediately) {
+        setViewState('room');
+      }
       setMultiplayerModalMode(null);
+      return { success: true };
     } catch (e: any) {
       console.error("Guruhga qo'shilishda xatolik:", e);
-      setGlobalError('Guruhga qoʻshilishda xatolik yuz berdi. Iltimos, qayta urinib koʻring.');
+      const msg = 'Guruhga qoʻshilishda xatolik yuz berdi. Iltimos, qayta urinib koʻring.';
+      setGlobalError(msg);
+      return { success: false, error: msg };
     } finally {
       setLoadingAction(null);
     }

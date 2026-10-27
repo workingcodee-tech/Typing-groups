@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Users, PlusCircle, Car, Volume2, VolumeX, Check, Copy, X, Edit3, AlertCircle, ArrowRight } from 'lucide-react';
+import { Play, Users, PlusCircle, Car, Volume2, VolumeX, Check, Copy, X, Edit3, AlertCircle, ArrowRight, Crown } from 'lucide-react';
 import { FAMOUS_CARS, RacingCar } from '../data/cars';
 import { CarShowcase } from './CarShowcase';
 import { DifficultyLevel } from '../types';
@@ -22,7 +22,7 @@ interface HomeModeSelectorProps {
   };
   onUpdateUser: (name: string, carId: string) => void;
   onStartSolo: (userName: string, carId: string, difficulty: DifficultyLevel, distance?: number) => void;
-  onJoinGroup: (roomId: string, userName: string, carId: string) => void;
+  onJoinGroup: (roomId: string, userName: string, carId: string, enterImmediately?: boolean) => Promise<{ success: boolean; error?: string }>;
   onCreateGroup: (groupName: string, userName: string, carId: string, targetDistance?: number, enterImmediately?: boolean) => Promise<string | null>;
   onEnterCreatedRoom: () => void;
   soundType: SwitchSoundType;
@@ -55,6 +55,9 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
 
   const [showJoinModal, setShowJoinModal] = useState<boolean>(false);
   const [joinPin, setJoinPin] = useState<string>(initialRoomId);
+  const [joinedRoomId, setJoinedRoomId] = useState<string | null>(null);
+  const [isJoiningGroup, setIsJoiningGroup] = useState<boolean>(false);
+  const [joinParticipants, setJoinParticipants] = useState<ModalParticipant[]>([]);
 
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [newGroupName, setNewGroupName] = useState<string>('Tezkor Poygachilar');
@@ -84,11 +87,40 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
           isCreator: data.isCreator || false
         });
       });
+      // Guruh yaratuvchisi (Host) eng yuqorida turishi uchun
+      list.sort((a, b) => (b.isCreator ? 1 : 0) - (a.isCreator ? 1 : 0));
       setModalParticipants(list);
     });
 
     return () => unsubscribe();
   }, [createdRoomId]);
+
+  // Guruhga muvaffaqiyatli qo'shilgach, ishtirokchilar jadvalini real vaqt rejimida kuzatish
+  useEffect(() => {
+    if (!joinedRoomId) {
+      setJoinParticipants([]);
+      return;
+    }
+
+    const participantsRef = collection(db, 'rooms', joinedRoomId, 'participants');
+    const unsubscribe = onSnapshot(participantsRef, (snapshot) => {
+      const list: ModalParticipant[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        list.push({
+          id: data.id || docSnap.id,
+          name: data.name || 'Poygachi',
+          carId: data.carId || 'bmw',
+          isCreator: data.isCreator || false
+        });
+      });
+      // Guruh yaratuvchisi (Host) eng yuqorida turishi uchun
+      list.sort((a, b) => (b.isCreator ? 1 : 0) - (a.isCreator ? 1 : 0));
+      setJoinParticipants(list);
+    });
+
+    return () => unsubscribe();
+  }, [joinedRoomId]);
 
   const [showCarModal, setShowCarModal] = useState<boolean>(false);
   const [showEditNameModal, setShowEditNameModal] = useState<boolean>(false);
@@ -165,8 +197,8 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
     onStartSolo(name, selectedCarId, soloDifficulty, soloDistance);
   };
 
-  // Guruhga qo'shilish
-  const handleConfirmJoin = (e: React.FormEvent) => {
+  // Guruhga qo'shilish (Modal yopilmasdan, avval 'Guruhga qo'shilmoqda...' ko'rsatiladi va ulanilgach a'zolar jadvali chiqadi)
+  const handleConfirmJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     const clean = joinPin.trim().replace(/\D/g, '');
     if (clean.length !== 6) {
@@ -174,8 +206,26 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
       return;
     }
     setErrorMsg('');
+    setIsJoiningGroup(true);
+
+    try {
+      const res = await onJoinGroup(clean, name, selectedCarId, false);
+      if (res && res.success) {
+        setJoinedRoomId(clean);
+      } else {
+        setErrorMsg(res?.error || `"${clean}" raqamli xona topilmadi. ID toʻgʻri kiritilganini tekshiring.`);
+      }
+    } catch {
+      setErrorMsg('Guruhga qoʻshilishda xatolik yuz berdi. Qayta urinib koʻring.');
+    } finally {
+      setIsJoiningGroup(false);
+    }
+  };
+
+  const handleEnterJoinedRoom = () => {
     setShowJoinModal(false);
-    onJoinGroup(clean, name, selectedCarId);
+    setJoinedRoomId(null);
+    onEnterCreatedRoom();
   };
 
   // Guruh yaratish (Faqat baza to'liq yaratilib tayyor bo'lgach ID modalga chiqadi)
@@ -510,39 +560,172 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
               </div>
             </div>
 
-            {errorMsg && (
-              <div className="p-2.5 bg-rose-950/90 border border-rose-500/60 rounded-xl text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{errorMsg}</span>
+            {!joinedRoomId ? (
+              // 1-bosqich: PIN kod kiritish va "Guruhga qo'shilmoqda..." holati
+              <>
+                {errorMsg && (
+                  <div className="p-2.5 bg-rose-950/90 border border-rose-500/60 rounded-xl text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleConfirmJoin} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 font-mono text-center">
+                      6 Xonali Xona PIN Kodi:
+                    </label>
+                    <input
+                      type="text"
+                      value={joinPin}
+                      onChange={(e) => setJoinPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      maxLength={6}
+                      autoFocus
+                      required
+                      disabled={isJoiningGroup}
+                      className="w-full text-center text-3xl font-black font-mono tracking-[0.4em] py-3.5 bg-slate-900 border-2 border-slate-700 focus:border-cyan-400 rounded-2xl text-cyan-300 outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={joinPin.trim().length !== 6 || isJoiningGroup}
+                    className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-cyan-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {isJoiningGroup ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                        <span>Guruhga qoʻshilmoqda...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Guruhga Kirish</span>
+                        <ArrowRight className="w-4 h-4 stroke-[3]" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </>
+            ) : (
+              // 2-bosqich: Guruhga qo'shilgach modal yopilmaydi va jonli a'zolar jadvali chiqadi
+              <div className="text-center space-y-4 py-1">
+                <div className="w-12 h-12 rounded-full bg-emerald-950/80 border border-emerald-400/50 flex items-center justify-center text-emerald-400 text-xl mx-auto shadow-lg shadow-emerald-500/20">
+                  <Check className="w-6 h-6 stroke-[3]" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white">Guruhga Muvaffaqiyatli Qoʻshildingiz!</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Xona PIN kodi: <span className="font-mono font-bold text-cyan-300">{joinedRoomId}</span>
+                  </p>
+                </div>
+
+                {/* GURUHGA QO'SHILGAN FOYDALANUVCHILAR JADVALI */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 text-left space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-3.5 h-3.5 text-cyan-400" />
+                      <span className="text-xs font-bold text-white uppercase font-mono tracking-wider">
+                        Guruh A'zolari ({joinParticipants.length}/10)
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/40">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      <span>Jonli</span>
+                    </div>
+                  </div>
+
+                  {/* Foydalanuvchilar Jadvali */}
+                  <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/70 max-h-48 overflow-y-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="text-[10px] text-slate-400 uppercase font-mono bg-slate-900/90 border-b border-slate-800">
+                        <tr>
+                          <th className="py-1.5 px-2.5">#</th>
+                          <th className="py-1.5 px-2.5">Poygachi Ismi</th>
+                          <th className="py-1.5 px-2.5">Mashina</th>
+                          <th className="py-1.5 px-2.5 text-right">Rol</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-850">
+                        {joinParticipants.map((p, idx) => {
+                          const pCar = FAMOUS_CARS.find(c => c.id === p.carId) || FAMOUS_CARS[0];
+                          const isHost = p.isCreator;
+                          const isMe = p.name === name;
+
+                          return (
+                            <tr
+                              key={p.id}
+                              className={`transition-colors ${
+                                isHost
+                                  ? 'bg-gradient-to-r from-amber-950/70 via-yellow-950/40 to-amber-950/70 font-semibold'
+                                  : 'hover:bg-slate-900/50'
+                              }`}
+                            >
+                              <td className="py-2 px-2.5 font-mono text-slate-500 font-bold">
+                                {isHost ? '👑' : idx + 1}
+                              </td>
+                              <td className="py-2 px-2.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className={`truncate max-w-[120px] ${
+                                      isHost
+                                        ? 'text-amber-300 font-black drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+                                        : 'text-white font-bold'
+                                    }`}
+                                  >
+                                    {p.name}
+                                  </span>
+                                  {isHost && (
+                                    <span className="px-1.5 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black rounded text-[9px] font-mono flex items-center gap-0.5 shadow-sm">
+                                      <Crown className="w-2.5 h-2.5 fill-current" /> Egasi
+                                    </span>
+                                  )}
+                                  {isMe && !isHost && (
+                                    <span className="px-1.5 py-0.2 bg-emerald-950 border border-emerald-500/50 text-emerald-300 rounded text-[9px] font-mono font-bold">
+                                      Siz
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-2 px-2.5">
+                                <div className="flex items-center gap-1.5 text-slate-300">
+                                  <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: pCar.bodyColor }} />
+                                  <span className="truncate max-w-[90px] font-mono text-[11px]">{pCar.shortLabel}</span>
+                                </div>
+                              </td>
+                              <td className="py-2 px-2.5 text-right">
+                                {isHost ? (
+                                  <span className="text-[10px] font-mono font-bold text-amber-400">
+                                    Xona Egasi
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-mono font-bold text-emerald-400">
+                                    Aʼzo ✓
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <p className="text-[11px] text-amber-400/90 text-center animate-pulse pt-1 font-mono">
+                    👑 Guruh egasi poygani boshlashi kutilmoqda...
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleEnterJoinedRoom}
+                  className="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-300 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Poyga Xonasiga Kirish</span>
+                  <ArrowRight className="w-4 h-4 stroke-[3]" />
+                </button>
               </div>
             )}
-
-            <form onSubmit={handleConfirmJoin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 font-mono text-center">
-                  6 Xonali Xona PIN Kodi:
-                </label>
-                <input
-                  type="text"
-                  value={joinPin}
-                  onChange={(e) => setJoinPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
-                  maxLength={6}
-                  autoFocus
-                  required
-                  className="w-full text-center text-3xl font-black font-mono tracking-[0.4em] py-3.5 bg-slate-900 border-2 border-slate-700 focus:border-cyan-400 rounded-2xl text-cyan-300 outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={joinPin.trim().length !== 6}
-                className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-cyan-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>Guruhga Kirish</span>
-                <ArrowRight className="w-4 h-4 stroke-[3]" />
-              </button>
-            </form>
           </div>
         </div>
       )}
@@ -689,29 +872,54 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
                       <tbody className="divide-y divide-slate-850">
                         {modalParticipants.map((p, idx) => {
                           const pCar = FAMOUS_CARS.find(c => c.id === p.carId) || FAMOUS_CARS[0];
+                          const isHost = p.isCreator;
+
                           return (
-                            <tr key={p.id} className="hover:bg-slate-900/50 transition-colors">
-                              <td className="py-1.5 px-2.5 font-mono text-slate-500 font-bold">{idx + 1}</td>
-                              <td className="py-1.5 px-2.5">
+                            <tr
+                              key={p.id}
+                              className={`transition-colors ${
+                                isHost
+                                  ? 'bg-gradient-to-r from-amber-950/70 via-yellow-950/40 to-amber-950/70 font-semibold'
+                                  : 'hover:bg-slate-900/50'
+                              }`}
+                            >
+                              <td className="py-2 px-2.5 font-mono text-slate-500 font-bold">
+                                {isHost ? '👑' : idx + 1}
+                              </td>
+                              <td className="py-2 px-2.5">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-white truncate max-w-[120px]">{p.name}</span>
-                                  {p.isCreator && (
-                                    <span className="px-1.5 py-0.2 bg-amber-950 border border-amber-500/50 text-amber-300 rounded text-[9px] font-mono font-bold">
-                                      Host
+                                  <span
+                                    className={`truncate max-w-[120px] ${
+                                      isHost
+                                        ? 'text-amber-300 font-black drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+                                        : 'text-white font-bold'
+                                    }`}
+                                  >
+                                    {p.name}
+                                  </span>
+                                  {isHost && (
+                                    <span className="px-1.5 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black rounded text-[9px] font-mono flex items-center gap-0.5 shadow-sm">
+                                      <Crown className="w-2.5 h-2.5 fill-current" /> Egasi
                                     </span>
                                   )}
                                 </div>
                               </td>
-                              <td className="py-1.5 px-2.5">
+                              <td className="py-2 px-2.5">
                                 <div className="flex items-center gap-1.5 text-slate-300">
                                   <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: pCar.bodyColor }} />
                                   <span className="truncate max-w-[100px] font-mono text-[11px]">{pCar.shortLabel}</span>
                                 </div>
                               </td>
-                              <td className="py-1.5 px-2.5 text-right">
-                                <span className="text-[10px] font-mono font-bold text-emerald-400">
-                                  Tayyor ✓
-                                </span>
+                              <td className="py-2 px-2.5 text-right">
+                                {isHost ? (
+                                  <span className="text-[10px] font-mono font-bold text-amber-400">
+                                    Xona Egasi
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-mono font-bold text-emerald-400">
+                                    Tayyor ✓
+                                  </span>
+                                )}
                               </td>
                             </tr>
                           );
