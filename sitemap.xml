@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Replace https://YOUR-DOMAIN.example with your real deployed domain. -->
   <url>
-    <loc>https://YOUR-DOMAIN.example/</loc>
-    <changefreq>weekly</changefreq>
+    <loc>https://typing-groups.vercel.app/</loc>
+    <lastmod>2026-10-27</lastmod>
+    <changefreq>daily</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://typing-groups.vercel.app/?mode=solo</loc>
+    <lastmod>2026-10-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://typing-groups.vercel.app/?mode=groups</loc>
+    <lastmod>2026-10-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

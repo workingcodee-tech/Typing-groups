@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Users, PlusCircle, ArrowRight, Volume2, VolumeX, Car, AlertCircle } from 'lucide-react';
 import { CarSelector } from './CarSelector';
+import { CarSprite } from './CarSprite';
 import { FAMOUS_CARS } from '../data/cars';
 import { DifficultyLevel } from '../types';
 import { SwitchSoundType } from '../utils/soundEffects';
@@ -492,6 +493,17 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
               >
                 Yopish
               </button>
+            </div>
+
+            {/* Tanlangan superkarning realistik jonli ko'rinishi */}
+            <div className="py-2 px-4 bg-slate-950/90 border border-cyan-500/30 rounded-xl flex items-center justify-center overflow-hidden">
+              <CarSprite
+                carId={selectedCarId}
+                playerName={name || 'Siz'}
+                currentWpm={60}
+                isUser={true}
+                rank={1}
+              />
             </div>
 
             <CarSelector

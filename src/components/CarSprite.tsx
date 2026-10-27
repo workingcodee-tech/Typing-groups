@@ -17,215 +17,402 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
   rank = 1
 }) => {
   const car: RacingCar = FAMOUS_CARS.find((c) => c.id === carId) || FAMOUS_CARS[0];
+  const isMoving = currentWpm > 0;
+  const isHighSpeed = currentWpm > 35;
+  const sType = car.silhouetteType || 'amg';
 
   return (
     <div className="relative flex flex-col items-center select-none pointer-events-none">
-      {/* Foydalanuvchi mashinasi ustidagi jonli o'rin nishoni (Aynan foydalanuvchining o'ziga ko'rinadi) */}
+      {/* 1. Foydalanuvchi mashinasi ustidagi neon arcade reyting nishoni */}
       {isUser && (
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center z-30 animate-pulse whitespace-nowrap">
-          <div className="px-2 py-0.5 bg-emerald-400 text-slate-950 font-black text-[10px] font-mono rounded-full shadow-[0_0_10px_#34d399] flex items-center gap-1 border border-emerald-300">
+        <div className="absolute -top-7 left-1/2 -translate-x-1/2 flex items-center z-30 animate-pulse whitespace-nowrap">
+          <div className="px-2.5 py-0.5 bg-gradient-to-r from-emerald-400 to-green-500 text-slate-950 font-black text-[10px] font-mono rounded-full shadow-[0_0_12px_#10b981] flex items-center gap-1 border border-emerald-200">
             <span>{rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '🏎️'}</span>
             <span>Siz: {rank}-oʻrin</span>
           </div>
         </div>
       )}
 
-      {/* Yon tomondan ko'rinuvchi haqiqiy arcade sport avtomobili (Side-view Sports Car) */}
-      <div className="relative w-24 h-10 sm:w-28 sm:h-11 flex items-center justify-center filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-        {/* Tezlik tutuni / Speed smoke trails */}
-        {currentWpm > 0 && (
-          <div className="absolute -left-5 top-1/2 -translate-y-1/2 flex items-center pointer-events-none opacity-80">
-            <span className="w-4 h-1 bg-gradient-to-l from-white/60 to-transparent rounded-full animate-ping" />
-            <span className="w-3 h-1.5 bg-gradient-to-l from-cyan-400/50 to-transparent rounded-full ml-1" />
+      {/* 2. Haqiqiy Supercar / Sport Avtomobili (Realistik Side-Profile) */}
+      <div className="relative w-28 h-12 sm:w-32 sm:h-14 flex items-center justify-center filter drop-shadow-[0_6px_10px_rgba(0,0,0,0.85)]">
+        {/* Yuqori tezlikdagi nitro alangasi va tutun effekti */}
+        {isMoving && (
+          <div className="absolute -left-7 top-[62%] -translate-y-1/2 flex items-center pointer-events-none">
+            {/* Nitro plazma alangasi */}
+            <span
+              className={`h-2 bg-gradient-to-l from-cyan-400 via-blue-500 to-transparent rounded-full animate-pulse ${
+                isHighSpeed ? 'w-6 opacity-100 shadow-[0_0_8px_#38bdf8]' : 'w-3 opacity-80'
+              }`}
+            />
+            {/* Tezlik tutun halqalari */}
+            <span className="w-2.5 h-1.5 bg-white/40 rounded-full blur-[1px] -ml-1 animate-ping" />
           </div>
         )}
 
         <svg
-          viewBox="0 0 200 80"
-          className="w-full h-full"
+          viewBox="0 0 230 75"
+          className="w-full h-full overflow-visible"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
-            {/* Wheel Rim Gradient */}
-            <radialGradient id={`wheelRim-${car.id}`} cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#e2e8f0" />
-              <stop offset="40%" stopColor="#94a3b8" />
-              <stop offset="100%" stopColor="#1e293b" />
-            </radialGradient>
-
-            {/* Glass Gradient */}
-            <linearGradient id={`glassGrad-${car.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.85" />
-              <stop offset="100%" stopColor="#0369a1" stopOpacity="0.95" />
+            {/* Metallik Bo'yoq Gradiyenti */}
+            <linearGradient id={`carPaint-${car.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" />
+              <stop offset="18%" stopColor={car.bodyColor} />
+              <stop offset="65%" stopColor={car.secondaryColor || car.bodyColor} />
+              <stop offset="100%" stopColor="#020617" stopOpacity="0.8" />
             </linearGradient>
 
-            {/* Body Shading Gradient */}
-            <linearGradient id={`bodyGrad-${car.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
-              <stop offset="30%" stopColor={car.bodyColor} />
-              <stop offset="100%" stopColor="#000000" stopOpacity="0.4" />
+            {/* Qora Karbon Frit va Shisha Gradiyenti */}
+            <linearGradient id={`carGlass-${car.id}`} x1="15%" y1="0%" x2="85%" y2="100%">
+              <stop offset="0%" stopColor="#7dd3fc" stopOpacity="0.9" />
+              <stop offset="45%" stopColor="#0284c7" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#031525" stopOpacity="0.95" />
+            </linearGradient>
+
+            {/* Alyuminiy Disk Gradiyenti */}
+            <radialGradient id={`rimGrad-${car.id}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#f8fafc" />
+              <stop offset="60%" stopColor="#cbd5e1" />
+              <stop offset="85%" stopColor="#475569" />
+              <stop offset="100%" stopColor="#0f172a" />
+            </radialGradient>
+
+            {/* Tormoz Diski (Teshikli po'lat rotor) */}
+            <radialGradient id={`rotorGrad-${car.id}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#94a3b8" />
+              <stop offset="70%" stopColor="#64748b" />
+              <stop offset="100%" stopColor="#334155" />
+            </radialGradient>
+
+            {/* Fara Nur Gradiyenti (Yo'lga tushuvchi ksenon yorug'lik konusi) */}
+            <linearGradient id={`headlightCone-${car.id}`} x1="0%" y1="50%" x2="100%" y2="50%">
+              <stop offset="0%" stopColor="#e0f2fe" stopOpacity="0.6" />
+              <stop offset="30%" stopColor="#38bdf8" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#0284c7" stopOpacity="0" />
             </linearGradient>
           </defs>
 
-          {/* Under-glow Neon */}
+          {/* 1. Asfalt ustidagi yumshoq soya */}
+          <ellipse cx="115" cy="69" rx="100" ry="4.5" fill="#000000" opacity="0.75" />
+          <ellipse cx="58" cy="69" rx="18" ry="3" fill="#000000" opacity="0.9" />
+          <ellipse cx="172" cy="69" rx="18" ry="3" fill="#000000" opacity="0.9" />
+
+          {/* 2. Foydalanuvchi mashinasi uchun neon Underglow (pastki chiroq) */}
           {isUser && (
             <ellipse
-              cx="100"
-              cy="74"
-              rx="75"
-              ry="6"
-              fill={car.glowColor || '#00e5ff'}
-              opacity="0.5"
-              filter="blur(2px)"
+              cx="115"
+              cy="68"
+              rx="88"
+              ry="5"
+              fill={car.glowColor}
+              opacity="0.55"
+              filter="drop-shadow(0 0 6px currentColor)"
             />
           )}
 
-          {/* Exhaust Pipe Flame if moving */}
-          {currentWpm > 15 && (
+          {/* 3. Old Fara Nurlanishi (Yo'lga tushuvchi yorqin ksenon nur) */}
+          <polygon
+            points="218,50 255,42 260,65 212,56"
+            fill={`url(#headlightCone-${car.id})`}
+            opacity={isMoving ? 0.9 : 0.4}
+          />
+
+          {/* 4. Orqa Egzoz quvurlari va olov */}
+          <rect x="10" y="55" width="8" height="4" rx="1.5" fill="#334155" stroke="#0f172a" strokeWidth="0.8" />
+          <circle cx="10" cy="57" r="1.5" fill="#020617" />
+          {isMoving && (
             <path
-              d="M 12 55 Q 0 57 2 60 Q 5 62 12 60 Z"
-              fill="#38bdf8"
-              opacity="0.9"
+              d="M 10 57 Q 1 56 3 58 Q 6 60 10 58 Z"
+              fill={isHighSpeed ? '#38bdf8' : '#f59e0b'}
+              opacity="0.95"
             />
           )}
 
-          {/* Car Rear Spoiler */}
-          <path
-            d="M 14 36 L 24 36 L 28 42 L 18 42 Z"
-            fill="#090d16"
-            stroke="#1e293b"
-            strokeWidth="1"
-          />
-          <path
-            d="M 16 36 L 18 48 L 22 48 L 22 36 Z"
-            fill="#090d16"
-          />
+          {/* 5. Modelga xos Haqiqiy kuzov silueti (Aerodynamic Bodywork) */}
+          {sType === 'bugatti' && (
+            <g>
+              {/* Bugatti Chiron kuzovi: past old burun, oqimli tom va faol orqa qanot */}
+              <path
+                d="M 16 58 L 16 46 Q 20 42 34 42 L 50 42 Q 62 25 96 23 L 140 24 Q 170 34 196 46 L 216 50 Q 222 53 222 59 L 218 63 L 192 63 A 19 19 0 0 0 154 63 L 78 63 A 19 19 0 0 0 40 63 L 16 63 Z"
+                fill={`url(#carPaint-${car.id})`}
+                stroke="#090d16"
+                strokeWidth="1.2"
+              />
+              {/* Bugatti ramziy 'C' shaklidagi yon havo kirish kanali (Signature C-Line) */}
+              <path
+                d="M 148 24 Q 172 35 158 54 Q 146 62 108 62 L 95 62 Q 68 62 68 45 Q 68 25 102 24 Z"
+                fill="none"
+                stroke={car.secondaryColor || '#00d2ff'}
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                opacity="0.95"
+              />
+              {/* Orqa uglerod qanot (Active Spoiler) */}
+              <path d="M 14 36 L 28 36 L 26 40 L 12 40 Z" fill="#020617" stroke="#38bdf8" strokeWidth="0.6" />
+              <line x1="20" y1="40" x2="20" y2="44" stroke="#090d16" strokeWidth="2.5" />
+            </g>
+          )}
 
-          {/* Aerodynamic Sports Car Chassis (Side Profile) */}
-          <path
-            d="M 18 58 
-               L 18 45 
-               Q 22 42 34 42 
-               L 52 42 
-               Q 65 24 95 23 
-               L 134 24 
-               Q 158 35 174 46 
-               L 188 50 
-               Q 192 53 192 60 
-               L 190 64 
-               L 165 64 
-               A 18 18 0 0 0 131 64 
-               L 75 64 
-               A 18 18 0 0 0 41 64 
-               L 18 64 Z"
-            fill={car.bodyColor}
-            stroke="#090d16"
-            strokeWidth="1.5"
-          />
-          {/* Overlay gradient for metallic curvature */}
-          <path
-            d="M 18 58 
-               L 18 45 
-               Q 22 42 34 42 
-               L 52 42 
-               Q 65 24 95 23 
-               L 134 24 
-               Q 158 35 174 46 
-               L 188 50 
-               Q 192 53 192 60 
-               L 190 64 
-               L 165 64 
-               A 18 18 0 0 0 131 64 
-               L 75 64 
-               A 18 18 0 0 0 41 64 
-               L 18 64 Z"
-            fill={`url(#bodyGrad-${car.id})`}
-            opacity="0.8"
-          />
+          {sType === 'ferrari' && (
+            <g>
+              {/* Ferrari F8: o'ta past ponasimon profil, agressiv havo so'rgichlar */}
+              <path
+                d="M 16 58 L 16 46 Q 22 41 36 41 L 52 41 Q 65 24 100 22 L 142 23 Q 175 35 198 47 L 220 51 Q 224 54 224 59 L 220 63 L 192 63 A 19 19 0 0 0 154 63 L 78 63 A 19 19 0 0 0 40 63 L 16 63 Z"
+                fill={`url(#carPaint-${car.id})`}
+                stroke="#090d16"
+                strokeWidth="1.2"
+              />
+              {/* Ferrari yon qanot havo teshigi va botiqligi */}
+              <path
+                d="M 85 46 Q 115 45 130 52 L 115 54 Q 90 49 85 46 Z"
+                fill="#450a0a"
+                opacity="0.9"
+              />
+              {/* O'rdak dumli orqa aerodinamik qirra */}
+              <path d="M 16 42 Q 24 40 32 41 L 28 44 Z" fill="#7f1d1d" />
+            </g>
+          )}
 
-          {/* Racing Stripe */}
-          <path
-            d="M 32 46 L 186 52 L 185 55 L 30 49 Z"
-            fill={car.stripeColor || '#ffffff'}
-            opacity="0.9"
-          />
+          {sType === 'porsche' && (
+            <g>
+              {/* Porsche 911: dumaloq orqa dvigatel gumbazi va afsonaviy whale-tail qanot */}
+              <path
+                d="M 16 58 L 16 48 Q 20 44 32 44 L 48 44 Q 56 26 95 24 L 138 25 Q 168 36 192 48 L 216 52 Q 222 55 222 60 L 218 63 L 192 63 A 19 19 0 0 0 154 63 L 78 63 A 19 19 0 0 0 40 63 L 16 63 Z"
+                fill={`url(#carPaint-${car.id})`}
+                stroke="#090d16"
+                strokeWidth="1.2"
+              />
+              {/* Porsche 911 orqa faol motor qanoti */}
+              <path d="M 18 42 L 34 41 L 38 45 L 20 46 Z" fill="#1e293b" stroke="#ca8a04" strokeWidth="0.8" />
+              {/* Old yumaloq 911 fara qavariqligi */}
+              <ellipse cx="204" cy="49" rx="5" ry="3" fill="#ffffff" opacity="0.6" />
+            </g>
+          )}
 
-          {/* Cockpit Windows (Cabin Glass) */}
-          <path
-            d="M 68 40 
-               Q 78 27 98 26 
-               L 130 27 
-               Q 148 35 158 40 
-               L 110 40 Z"
-            fill={`url(#glassGrad-${car.id})`}
-            stroke="#090d16"
-            strokeWidth="1"
-          />
-          <path
-            d="M 68 40 L 106 40 L 105 27 Q 82 27 68 40 Z"
-            fill="#082f49"
-            opacity="0.75"
-          />
-          {/* Window Pillar */}
-          <line x1="108" y1="27" x2="110" y2="40" stroke="#090d16" strokeWidth="2.5" />
+          {sType === 'amg' && (
+            <g>
+              {/* Mercedes-AMG GT: uzun kapot, ortga surilgan kabina, poyga qanoti */}
+              <path
+                d="M 16 58 L 16 47 Q 22 43 36 43 L 52 43 Q 66 26 96 25 L 136 26 Q 164 38 196 46 L 220 50 Q 224 53 224 59 L 220 63 L 192 63 A 19 19 0 0 0 154 63 L 78 63 A 19 19 0 0 0 40 63 L 16 63 Z"
+                fill={`url(#carPaint-${car.id})`}
+                stroke="#090d16"
+                strokeWidth="1.2"
+              />
+              {/* Katta uglerod qanot (Black Series GT Wing) */}
+              <path d="M 14 33 L 32 33 L 30 37 L 12 37 Z" fill="#090d16" stroke="#00e5ff" strokeWidth="0.8" />
+              <line x1="20" y1="37" x2="20" y2="44" stroke="#090d16" strokeWidth="2.5" />
+              <line x1="26" y1="37" x2="26" y2="44" stroke="#090d16" strokeWidth="2.5" />
+              {/* Kapotdagi agressiv AMG gill teshiklari */}
+              <path d="M 155 42 L 175 44 L 170 46 L 150 44 Z" fill="#0f172a" opacity="0.8" />
+            </g>
+          )}
 
-          {/* Driver Silhouette Inside */}
-          <circle cx="94" cy="34" r="5" fill="#f8fafc" />
-          <circle cx="96" cy="34" r="3" fill="#0284c7" />
+          {sType === 'bmw' && (
+            <g>
+              {/* BMW M4 Competition: o'tkir burchakli nemis sport kupesi */}
+              <path
+                d="M 16 58 L 16 48 Q 22 44 36 44 L 54 44 Q 68 26 98 25 L 140 26 Q 166 37 194 48 L 218 51 Q 222 54 222 60 L 218 63 L 192 63 A 19 19 0 0 0 154 63 L 78 63 A 19 19 0 0 0 40 63 L 16 63 Z"
+                fill={`url(#carPaint-${car.id})`}
+                stroke="#090d16"
+                strokeWidth="1.2"
+              />
+              {/* Karbon tom chizig'i (M-Carbon Roof) */}
+              <path d="M 88 25 L 138 26 L 134 29 L 84 28 Z" fill="#090d16" opacity="0.85" />
+              {/* M-quvvat aerodinamik quloq oynasi */}
+              <polygon points="122,39 128,36 126,42 120,41" fill="#0f172a" />
+            </g>
+          )}
 
-          {/* Door Cutline */}
+          {sType === 'audi' && (
+            <g>
+              {/* Audi R8 V10: markaziy dvigatelli superkar, ramziy Carbon Side-Blade */}
+              <path
+                d="M 16 58 L 16 47 Q 20 42 34 42 L 50 42 Q 64 25 96 24 L 138 25 Q 168 36 195 47 L 218 50 Q 224 53 224 59 L 220 63 L 192 63 A 19 19 0 0 0 154 63 L 78 63 A 19 19 0 0 0 40 63 L 16 63 Z"
+                fill={`url(#carPaint-${car.id})`}
+                stroke="#090d16"
+                strokeWidth="1.2"
+              />
+              {/* Audi R8 mashhur 'Side-Blade' karbon paneli (eshik orqasidagi qora qoplama) */}
+              <path
+                d="M 76 34 L 88 34 L 84 62 L 72 62 Z"
+                fill="#020617"
+                stroke="#ef4444"
+                strokeWidth="0.8"
+                opacity="0.9"
+              />
+            </g>
+          )}
+
+          {sType === 'mustang' && (
+            <g>
+              {/* Ford Mustang Shelby: baland mushakdor kapot, agressiv tanaffus */}
+              <path
+                d="M 16 58 L 16 49 Q 20 45 34 45 L 56 45 Q 68 27 98 26 L 138 27 Q 164 38 190 48 L 216 50 Q 222 52 222 59 L 218 63 L 192 63 A 19 19 0 0 0 154 63 L 78 63 A 19 19 0 0 0 40 63 L 16 63 Z"
+                fill={`url(#carPaint-${car.id})`}
+                stroke="#090d16"
+                strokeWidth="1.2"
+              />
+              {/* Shelby Le-Mans oq chiziqlari (Dual Racing Stripes) */}
+              <path d="M 30 47 L 216 52 L 215 55 L 28 50 Z" fill="#ffffff" opacity="0.95" />
+              <path d="M 28 51 L 214 56 L 213 58 L 26 53 Z" fill="#ffffff" opacity="0.9" />
+              {/* Kapot tepasidagi havo olish tuynugi (Hood Scoop) */}
+              <polygon points="172,43 186,43 184,46 170,46" fill="#0f172a" />
+            </g>
+          )}
+
+          {sType === 'lambo' && (
+            <g>
+              {/* Lamborghini Huracan: qirrali qiruvchi samolyot (Stealth Fighter) dizayni */}
+              <path
+                d="M 16 58 L 16 46 L 36 41 L 52 41 L 96 22 L 140 23 L 198 46 L 222 50 L 224 58 L 218 63 L 192 63 A 19 19 0 0 0 154 63 L 78 63 A 19 19 0 0 0 40 63 L 16 63 Z"
+                fill={`url(#carPaint-${car.id})`}
+                stroke="#090d16"
+                strokeWidth="1.2"
+              />
+              {/* Lambo STO katta orqa qanoti va tom akulasi (Shark Fin) */}
+              <path d="M 12 30 L 30 30 L 26 34 L 8 34 Z" fill="#020617" stroke="#facc15" strokeWidth="0.8" />
+              <line x1="18" y1="34" x2="18" y2="42" stroke="#090d16" strokeWidth="2.5" />
+              <path d="M 98 23 L 132 23 L 126 27 L 94 27 Z" fill="#020617" />
+            </g>
+          )}
+
+          {sType === 'sedan' && (
+            <g>
+              {/* Stinger / Malibu: Chiroyli sport sedani (Fastback 4-Door) */}
+              <path
+                d="M 16 58 L 16 49 Q 20 45 36 45 L 56 45 Q 70 27 100 26 L 144 27 Q 170 38 196 48 L 218 51 Q 222 54 222 60 L 218 63 L 192 63 A 19 19 0 0 0 154 63 L 78 63 A 19 19 0 0 0 40 63 L 16 63 Z"
+                fill={`url(#carPaint-${car.id})`}
+                stroke="#090d16"
+                strokeWidth="1.2"
+              />
+              {/* 4-eshikli sedan ajratuvchi B-pillar chizig'i */}
+              <line x1="108" y1="28" x2="108" y2="62" stroke="#090d16" strokeWidth="1.5" opacity="0.6" />
+              <line x1="78" y1="46" x2="78" y2="62" stroke="#090d16" strokeWidth="1.2" opacity="0.5" />
+            </g>
+          )}
+
+          {/* 6. Yorug'lik yaltirashi (Metallik qirra nuri - Shoulder Specular Reflection) */}
           <path
-            d="M 72 41 L 68 59 L 122 59 L 128 41"
+            d="M 36 44 Q 96 42 194 48"
             fill="none"
+            stroke="#ffffff"
+            strokeWidth="1"
+            opacity="0.65"
+          />
+
+          {/* 7. Kokpit oynalari (Aerodinamik qoraytirilgan oynalar) */}
+          <path
+            d="M 68 41 Q 78 28 98 27 L 134 27 Q 155 36 166 42 L 112 42 Z"
+            fill={`url(#carGlass-${car.id})`}
             stroke="#090d16"
-            strokeWidth="1.2"
-            opacity="0.5"
+            strokeWidth="1"
           />
-          {/* Door Handle */}
-          <rect x="78" y="44" width="8" height="2" rx="1" fill="#090d16" />
+          {/* Orqa kichik oyna qoraytirmasi */}
+          <path d="M 68 41 L 102 41 L 100 28 Q 80 28 68 41 Z" fill="#041f33" opacity="0.85" />
+          {/* Oyna ustuni (A & B Pillars) */}
+          <line x1="104" y1="28" x2="106" y2="42" stroke="#090d16" strokeWidth="2.5" />
+          <line x1="135" y1="28" x2="160" y2="42" stroke="#090d16" strokeWidth="2" />
 
-          {/* Front Headlight */}
+          {/* Haydovchi shlemi (Kaskali poygachi silueti) */}
+          <circle cx="94" cy="35" r="4.5" fill="#f8fafc" />
+          <path d="M 94 34 Q 98 34 98 37 L 94 37 Z" fill="#0284c7" />
+
+          {/* 8. Old Kristall Fara (LED Matrix Projector) */}
           <polygon
-            points="180,48 190,52 184,55 176,51"
+            points="206,49 220,53 214,57 202,52"
             fill="#ffffff"
+            stroke="#38bdf8"
+            strokeWidth="0.8"
           />
-          <polygon
-            points="184,50 196,53 194,56 182,53"
-            fill="#38bdf8"
-            opacity="0.8"
-          />
+          <circle cx="212" cy="53" r="2" fill="#38bdf8" />
+          <circle cx="216" cy="54" r="1.5" fill="#ffffff" />
 
-          {/* Rear Taillight */}
-          <rect x="18" y="46" width="4" height="6" rx="1" fill="#ef4444" />
+          {/* 9. Orqa Qizil LED Chiroq (Slim Taillight) */}
+          <rect x="15" y="47" width="4.5" height="6.5" rx="1.5" fill="#ef4444" stroke="#7f1d1d" strokeWidth="0.6" />
+          <rect x="16" y="49" width="3" height="2" fill="#fecaca" />
 
-          {/* Wheel Wells (Fenders) */}
-          <path d="M 37 64 A 16 16 0 0 1 73 64 Z" fill="#090d16" />
-          <path d="M 127 64 A 16 16 0 0 1 163 64 Z" fill="#090d16" />
+          {/* 10. G'ildirak kamarlari (Wheel Arches) */}
+          <path d="M 37 63 A 19 19 0 0 1 79 63 Z" fill="#090d16" />
+          <path d="M 151 63 A 19 19 0 0 1 193 63 Z" fill="#090d16" />
 
-          {/* Rear Wheel */}
-          <circle cx="55" cy="64" r="14" fill="#090d16" stroke="#1e293b" strokeWidth="1" />
-          <circle cx="55" cy="64" r="9" fill={`url(#wheelRim-${car.id})`} />
-          <circle cx="55" cy="64" r="4" fill="#0f172a" />
-          {/* Wheel Spokes */}
-          <line x1="55" y1="55" x2="55" y2="73" stroke="#e2e8f0" strokeWidth="1.2" />
-          <line x1="46" y1="64" x2="64" y2="64" stroke="#e2e8f0" strokeWidth="1.2" />
+          {/* 11. ORQA G'ILDIRAK (Shina, teshikli po'lat rotor, sport kaliperi va qotishma disk) */}
+          <g transform="translate(58, 63)">
+            {/* Shina (Pirelli sport kauchuk) */}
+            <circle cx="0" cy="0" r="16.5" fill="#0b0f19" stroke="#1e293b" strokeWidth="1.2" />
+            <circle cx="0" cy="0" r="13" fill="#1e293b" />
 
-          {/* Front Wheel */}
-          <circle cx="145" cy="64" r="14" fill="#090d16" stroke="#1e293b" strokeWidth="1" />
-          <circle cx="145" cy="64" r="9" fill={`url(#wheelRim-${car.id})`} />
-          <circle cx="145" cy="64" r="4" fill="#0f172a" />
-          {/* Wheel Spokes */}
-          <line x1="145" y1="55" x2="145" y2="73" stroke="#e2e8f0" strokeWidth="1.2" />
-          <line x1="136" y1="64" x2="154" y2="64" stroke="#e2e8f0" strokeWidth="1.2" />
+            {/* Tormoz rotori (Diski) */}
+            <circle cx="0" cy="0" r="10.5" fill={`url(#rotorGrad-${car.id})`} />
+            <circle cx="0" cy="0" r="9" fill="none" stroke="#475569" strokeWidth="0.8" strokeDasharray="1.5,1.5" />
+
+            {/* Sport Tormoz Kaliperi (Brembo uslubida yorqin rangda) */}
+            <path
+              d="M -9 -7 Q -6 -10 -2 -10 L -2 -4 Q -6 -4 -9 -1 Z"
+              fill={car.caliperColor || '#ef4444'}
+              stroke="#0f172a"
+              strokeWidth="0.5"
+            />
+
+            {/* Qotishma disk (Alloy Rim) */}
+            <circle cx="0" cy="0" r="10" fill="none" stroke={`url(#rimGrad-${car.id})`} strokeWidth="1.5" />
+            <circle cx="0" cy="0" r="4.5" fill="#0f172a" stroke="#94a3b8" strokeWidth="0.8" />
+            <circle cx="0" cy="0" r="2" fill="#e2e8f0" />
+
+            {/* 5 ta sport spitsa (Spokes) */}
+            <g className={isMoving ? 'animate-spin origin-center' : ''} style={{ animationDuration: '0.6s' }}>
+              <line x1="0" y1="-9.5" x2="0" y2="9.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="-9" y1="-3" x2="9" y2="3" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="-6" y1="7.5" x2="6" y2="-7.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="6" y1="7.5" x2="-6" y2="-7.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
+            </g>
+          </g>
+
+          {/* 12. OLD G'ILDIRAK (Shina, teshikli po'lat rotor, sport kaliperi va qotishma disk) */}
+          <g transform="translate(172, 63)">
+            {/* Shina */}
+            <circle cx="0" cy="0" r="16.5" fill="#0b0f19" stroke="#1e293b" strokeWidth="1.2" />
+            <circle cx="0" cy="0" r="13" fill="#1e293b" />
+
+            {/* Tormoz rotori */}
+            <circle cx="0" cy="0" r="10.5" fill={`url(#rotorGrad-${car.id})`} />
+            <circle cx="0" cy="0" r="9" fill="none" stroke="#475569" strokeWidth="0.8" strokeDasharray="1.5,1.5" />
+
+            {/* Sport Tormoz Kaliperi */}
+            <path
+              d="M -9 -7 Q -6 -10 -2 -10 L -2 -4 Q -6 -4 -9 -1 Z"
+              fill={car.caliperColor || '#ef4444'}
+              stroke="#0f172a"
+              strokeWidth="0.5"
+            />
+
+            {/* Qotishma disk */}
+            <circle cx="0" cy="0" r="10" fill="none" stroke={`url(#rimGrad-${car.id})`} strokeWidth="1.5" />
+            <circle cx="0" cy="0" r="4.5" fill="#0f172a" stroke="#94a3b8" strokeWidth="0.8" />
+            <circle cx="0" cy="0" r="2" fill="#e2e8f0" />
+
+            {/* 5 ta sport spitsa */}
+            <g className={isMoving ? 'animate-spin origin-center' : ''} style={{ animationDuration: '0.6s' }}>
+              <line x1="0" y1="-9.5" x2="0" y2="9.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="-9" y1="-3" x2="9" y2="3" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="-6" y1="7.5" x2="6" y2="-7.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="6" y1="7.5" x2="-6" y2="-7.5" stroke="#f1f5f9" strokeWidth="1.6" strokeLinecap="round" />
+            </g>
+          </g>
         </svg>
       </div>
 
-      {/* Foydalanuvchining ismi mashina ostida (rasmdagidek toza oq shriftda) */}
-      <div className="mt-0.5 text-center">
-        <span className={`text-[10px] sm:text-[11px] font-bold tracking-tight font-sans drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] truncate max-w-[90px] block ${
-          isUser ? 'text-white' : 'text-slate-300'
-        }`}>
+      {/* 3. Mashina ostida haydovchi ismi va avtomobil modeli */}
+      <div className="mt-1 text-center flex flex-col items-center">
+        <span
+          className={`text-[10px] sm:text-[11px] font-black tracking-tight font-sans drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] truncate max-w-[100px] block ${
+            isUser ? 'text-white' : 'text-slate-300'
+          }`}
+        >
           {playerName}
+        </span>
+        <span className="text-[8px] font-mono font-bold text-cyan-400/90 tracking-wider uppercase block">
+          {car.shortLabel}
         </span>
       </div>
     </div>

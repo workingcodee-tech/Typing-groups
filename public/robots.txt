@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Qidiruv tizimlari xaritasi (Sitemap)
+Sitemap: /sitemap.xml
