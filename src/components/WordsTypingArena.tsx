@@ -3,10 +3,11 @@ import { sounds } from '../utils/soundEffects';
 import { RotateCcw, Flag } from 'lucide-react';
 import { RaceStats } from '../types';
 import { AnalogSpeedometer } from './AnalogSpeedometer';
-import { generate5000Words } from '../data/words';
+import { generate5000Words, GameLanguage } from '../data/words';
 
 interface WordsTypingArenaProps {
-  wordsList: string[]; // 5000 ta tasodifiy inglizcha so'zlar
+  wordsList: string[]; // Tasodifiy so'zlar ro'yxati (O'zbekcha yoki Inglizcha)
+  language?: GameLanguage; // 'uz' | 'en'
   onProgressUpdate: (progress: number, wpm: number, accuracy: number, chars: number, errors: number, currentMeters: number) => void;
   onFinish: (stats: RaceStats) => void;
   isGameActive: boolean;
@@ -41,6 +42,7 @@ export const getTargetCharsForDistance = (meters: number): number => {
 
 export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
   wordsList,
+  language = 'uz',
   onProgressUpdate,
   onFinish,
   isGameActive,
@@ -64,21 +66,21 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
   const [activeWords, setActiveWords] = useState<string[]>(() => {
     if (wordsList && wordsList.length >= 120) return wordsList;
     return wordsList && wordsList.length > 0
-      ? [...wordsList, ...generate5000Words(300)]
-      : generate5000Words(500);
+      ? [...wordsList, ...generate5000Words(300, language)]
+      : generate5000Words(500, language);
   });
 
   useEffect(() => {
     if (wordsList && wordsList.length > 0) {
       if (wordsList.length < 150) {
-        setActiveWords([...wordsList, ...generate5000Words(300)]);
+        setActiveWords([...wordsList, ...generate5000Words(300, language)]);
       } else {
         setActiveWords(wordsList);
       }
     } else {
-      setActiveWords(generate5000Words(500));
+      setActiveWords(generate5000Words(500, language));
     }
-  }, [wordsList]);
+  }, [wordsList, language]);
 
   // Statistika
   const [totalCorrectChars, setTotalCorrectChars] = useState<number>(0);
@@ -314,7 +316,7 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
 
     // Agar so'zlar tugab qolish arafasida bo'lsa, avtomatik yana 150 ta yangi so'z qo'shish (hech qachon tugamaydi)
     if (nextWordIdx >= activeWords.length - 15) {
-      setActiveWords((prev) => [...prev, ...generate5000Words(150)]);
+      setActiveWords((prev) => [...prev, ...generate5000Words(150, language)]);
     }
 
     setCurrentWordIndex(nextWordIdx);

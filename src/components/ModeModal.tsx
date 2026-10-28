@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { User, Users, PlusCircle, X, ArrowRight, AlertCircle, Sparkles, Gauge, Flame } from 'lucide-react';
+import { User, Users, PlusCircle, X, ArrowRight, AlertCircle, Sparkles, Gauge, Flame, Globe } from 'lucide-react';
 import { CarSelector } from './CarSelector';
 import { DifficultyLevel } from '../types';
+import { GameLanguage } from '../data/words';
 
 export type ModeType = 'solo' | 'join' | 'create';
 
@@ -10,7 +11,7 @@ interface ModeModalProps {
   onClose: () => void;
   onStartSolo: (userName: string, carId: string, difficulty: DifficultyLevel, distance?: number) => void;
   onJoinGroup: (roomId: string, userName: string, carId: string) => void;
-  onCreateGroup: (groupName: string, userName: string, carId: string, targetDistance?: number) => void;
+  onCreateGroup: (groupName: string, userName: string, carId: string, targetDistance?: number, enterImmediately?: boolean, language?: GameLanguage) => void;
 }
 
 export const ModeModal: React.FC<ModeModalProps> = ({
@@ -33,6 +34,7 @@ export const ModeModal: React.FC<ModeModalProps> = ({
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
   const [groupName, setGroupName] = useState<string>('');
   const [targetDistance, setTargetDistance] = useState<number>(100);
+  const [language, setLanguage] = useState<GameLanguage>('uz');
   const [roomIdInput, setRoomIdInput] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
@@ -66,7 +68,7 @@ export const ModeModal: React.FC<ModeModalProps> = ({
         setErrorMsg('Iltimos, yangi guruh nomini kiriting!');
         return;
       }
-      onCreateGroup(groupName.trim(), userName.trim(), selectedCarId, targetDistance);
+      onCreateGroup(groupName.trim(), userName.trim(), selectedCarId, targetDistance, true, language);
     }
   };
 
@@ -127,6 +129,38 @@ export const ModeModal: React.FC<ModeModalProps> = ({
                   required
                   className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-cyan-400"
                 />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Oʻyin Tili:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('uz')}
+                    className={`py-1.5 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      language === 'uz'
+                        ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-sm'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>🇺🇿</span>
+                    <span>Oʻzbekcha (Lotin)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('en')}
+                    className={`py-1.5 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      language === 'en'
+                        ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-sm'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>🇬🇧</span>
+                    <span>English</span>
+                  </button>
+                </div>
               </div>
 
               <div>
