@@ -77,7 +77,7 @@ export const HighwayRaceTrack: React.FC<HighwayRaceTrackProps> = ({
       </div>
 
       {/* 3. ASOSIY ASFALT POYGA TRASSASI */}
-      <div className="relative bg-[#161d27] min-h-[140px] max-h-[36vh] overflow-y-auto overflow-x-hidden">
+      <div className="relative bg-[#161d27] min-h-[260px] max-h-[55vh] overflow-y-auto overflow-x-hidden">
         {/* Start chizig'i (Chap tomonda) */}
         <div className="absolute left-6 top-0 bottom-0 w-1 bg-white/40 z-10 pointer-events-none flex items-center justify-center">
           <span className="text-[7px] text-white/50 -rotate-90 uppercase font-mono font-bold">START</span>

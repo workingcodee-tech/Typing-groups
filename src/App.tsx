@@ -315,8 +315,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Asosiy O'yin Maydoni */}
-        <main className="flex-1 min-h-0 overflow-y-auto sm:overflow-hidden flex flex-col justify-center w-full max-w-6xl mx-auto px-2 sm:px-4 py-1">
+        {/* Asosiy O'yin Maydoni (Poyga maydoni to'liq ekranni egallaydi) */}
+        <main className={`flex-1 min-h-0 overflow-hidden flex flex-col w-full ${viewState === 'home' ? 'max-w-6xl mx-auto px-2 sm:px-4 py-1 justify-center' : 'w-full h-full max-w-none px-0 py-0 justify-between'}`}>
           {/* 1. BOSH REJIM TANLASH LOBBISI (Saytga kirganda so'raladi) */}
           {viewState === 'home' && (
             <HomeModeSelector

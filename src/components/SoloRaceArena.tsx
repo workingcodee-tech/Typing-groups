@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { HighwayRaceTrack, HighwayRacer } from './HighwayRaceTrack';
-import { WordsTypingArena, DISTANCE_TARGETS, getTargetCharsForDistance } from './WordsTypingArena';
+import { WordsTypingArena, getTargetCharsForDistance } from './WordsTypingArena';
 import { RaceResultsModal } from './RaceResultsModal';
 import { FinishCelebrationOverlay } from './FinishCelebrationOverlay';
 import { CarSelector } from './CarSelector';
 import { generate5000Words } from '../data/words';
 import { RaceStats, DifficultyLevel } from '../types';
-import { Users, Volume2, VolumeX, Sparkles, X, Check, Edit3 } from 'lucide-react';
+import { Users, Volume2, VolumeX, X, Edit3, HelpCircle } from 'lucide-react';
 import { FAMOUS_CARS } from '../data/cars';
 import { sounds, SwitchSoundType } from '../utils/soundEffects';
 import { sortRacersByRank } from '../utils/raceRanking';
@@ -24,7 +24,7 @@ interface SoloRaceArenaProps {
   onToggleSound?: () => void;
 }
 
-// 3 xil qiyinlik darajasidagi botlar parametrlari (foydalanuvchilar qulay yutishi uchun sezilarli sekinlashtirilgan)
+// 3 xil qiyinlik darajasidagi botlar parametrlari (foydalanuvchilar qulay yutishi uchun moslangan)
 const BOT_CONFIGS: Record<DifficultyLevel, { id: string; name: string; carId: string; wpm: number; accuracy: number }[]> = {
   easy: [
     { id: 'bot-1', name: 'Sokin Haydovchi', carId: 'malibu', wpm: 10, accuracy: 95 },
@@ -63,6 +63,9 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
   const [isNameModalOpen, setIsNameModalOpen] = useState<boolean>(false);
   const [tempName, setTempName] = useState<string>(userName);
 
+  // Poyga oldidan yo'riqnoma ko'rsatish modali
+  const [showInstructionModal, setShowInstructionModal] = useState<boolean>(true);
+
   const [selectedDistance, setSelectedDistance] = useState<number>(initialDistance);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(initialDifficulty);
 
@@ -73,8 +76,8 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     }
   }, [initialDistance]);
 
-  // 3-2-1 Countdown holati
-  const [countdown, setCountdown] = useState<number | null>(3);
+  // 3-2-1 Countdown holati (boshida null bo'ladi, foydalanuvchi "Tushunarli" degach boshlanadi)
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [isRaceActive, setIsRaceActive] = useState<boolean>(false);
   const raceStartTimeRef = useRef<number | null>(null);
 
@@ -151,9 +154,14 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     }, 1000);
   }, [initialRacers]);
 
-  // Sahifa yuklanganda yoki difficulty/distance o'zgarganda 3-2-1 bilan boshlanadi
-  useEffect(() => {
+  // Yo'riqnomani tasdiqlab poygani boshlash
+  const handleAcknowledgeInstructions = () => {
+    setShowInstructionModal(false);
     startCountdown();
+  };
+
+  // Komponent o'chirilganda taymerlarni tozalash
+  useEffect(() => {
     return () => {
       if (countdownTimerRef.current) {
         clearInterval(countdownTimerRef.current);
@@ -162,7 +170,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
         clearInterval(botIntervalRef.current);
       }
     };
-  }, [startCountdown]);
+  }, []);
 
   // Botlarning masofaga va qiyinlik darajasiga qarab harakatlanishi
   useEffect(() => {
@@ -189,7 +197,6 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           if (racer.isUser || racer.finished) return racer;
 
           const wpm = botSpeeds[racer.id] || 45;
-          // Soniya boshiga so'z: wpm / 60
           const wordsTyped = elapsedSeconds * (wpm / 60);
           const progress = Math.min(100, Math.round((wordsTyped / targetWords) * 100));
 
@@ -202,7 +209,6 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           };
         });
 
-        // O'rinlarni aniq hisoblash
         const sorted = sortRacersByRank(updated);
         const rankMap = new Map(sorted.map((r, i) => [r.id, i + 1]));
 
@@ -296,7 +302,8 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     setShowCelebration(false);
     setShowDetailedModal(false);
     setWordsList(generate5000Words());
-  }, []);
+    startCountdown();
+  }, [startCountdown]);
 
   const handleSaveName = (e: React.FormEvent) => {
     e.preventDefault();
@@ -312,46 +319,69 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
   };
 
   return (
-    <div className="w-full h-full max-w-5xl mx-auto flex flex-col justify-between py-1 px-2 select-none relative">
-      {/* 1. ARCADE HUD: Logo, Guruh poygasi, Qiyinlik, Mashina va Ovoz sozlamalari */}
-      <div className="flex items-center justify-between px-1 py-1 flex-wrap gap-2 bg-slate-950/70 border border-slate-800/80 rounded-2xl shadow-xl backdrop-blur-md">
-        {/* Chap tomon: Logo va Guruh rejimi */}
-        <div className="flex items-center gap-2">
-          {/* O'yin Logosi */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-emerald-950/80 to-slate-900 border border-emerald-500/40 rounded-xl">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-black tracking-tight text-white font-mono">
-              TYPE <span className="text-emerald-400">GROUPS</span>
+    <div className="w-full h-full max-w-none flex flex-col justify-between py-1.5 px-2 sm:px-4 select-none relative overflow-hidden bg-[#070b14]/70">
+      {/* 1. GORIZONTAL BIR QATORLI HEADER (O'yin nomi, Yakka poyga, O'yinchi nomi, Daraja, Tugatish) */}
+      <header className="w-full flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-5 py-2 bg-slate-950/85 border border-slate-800/80 rounded-2xl shadow-xl backdrop-blur-md shrink-0 whitespace-nowrap overflow-x-auto no-scrollbar">
+        {/* Chap qism: O'yin nomi va Rejim */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* O'yin Logosi va Nomi */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-emerald-950/90 to-slate-900 border border-emerald-500/40 rounded-xl">
+            <span className="text-sm">🏎️</span>
+            <span className="text-xs sm:text-sm font-black tracking-tight text-white font-mono">
+              TYPING <span className="text-emerald-400">GROUPS</span>
             </span>
           </div>
 
-          {/* Poygani to'xtatish va asosiy sahifaga qaytish (Har doim bosh sahifaga olib o'tadi) */}
-          {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-rose-200 hover:text-white bg-rose-950/80 hover:bg-rose-900 border border-rose-700/80 rounded-xl transition-all shadow-md cursor-pointer active:scale-95"
-              title="Poygani toʻxtatish va asosiy menyuga qaytish"
-            >
-              <span>🛑</span>
-              <span>Toʻxtatish</span>
-            </button>
-          )}
+          {/* Rejim: Yakka Poyga */}
+          <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-900/90 border border-slate-700/70 rounded-xl text-xs font-bold text-slate-200">
+            <span>🏁</span>
+            <span>Yakka Poyga</span>
+          </div>
 
-          {/* Guruhga o'tish (Multiplayer) tugmasi */}
+          {/* Multiplayer (Guruh) ga o'tish tugmasi */}
           {onOpenMultiplayer && (
             <button
               type="button"
               onClick={onOpenMultiplayer}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-cyan-300 hover:text-white bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-500/50 rounded-xl transition-all shadow-md shadow-cyan-950/40 cursor-pointer active:scale-95"
+              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-cyan-300 hover:text-white bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-500/50 rounded-xl transition-all shadow-md cursor-pointer active:scale-95"
             >
               <Users className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Guruh (Multiplayer)</span>
+              <span>Guruhga Qoʻshilish</span>
             </button>
           )}
+        </div>
 
-          {/* Qiyinlik darajasini almashtirish: Oson / O'rta / Qiyin */}
-          <div className="flex items-center p-0.5 bg-slate-900/90 border border-slate-800 rounded-xl text-[10px] font-bold">
+        {/* Markaziy qism: O'yinchi nomi, Mashina va Daraja sozlamalari */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* O'yinchi nomi */}
+          <button
+            type="button"
+            onClick={() => setIsNameModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-900/90 hover:bg-slate-800 border border-slate-700 rounded-xl text-cyan-300 font-bold text-xs cursor-pointer transition-colors"
+            title="Ismni oʻzgartirish"
+          >
+            <span>👤</span>
+            <span className="max-w-[90px] sm:max-w-none truncate">{userName}</span>
+            <Edit3 className="w-3 h-3 text-slate-500" />
+          </button>
+
+          {/* Tanlangan mashina */}
+          <button
+            type="button"
+            onClick={() => setIsCarModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-900/90 hover:bg-slate-800 border border-slate-700 rounded-xl text-slate-200 text-xs cursor-pointer transition-colors active:scale-95"
+            title="Mashinani almashtirish"
+          >
+            <span
+              className="w-2.5 h-2.5 rounded-full border border-slate-600 shrink-0"
+              style={{ backgroundColor: selectedCar.bodyColor }}
+            />
+            <span className="font-bold text-white max-w-[80px] sm:max-w-none truncate">{selectedCar.name.split(' ')[0]}</span>
+            <span className="text-[10px] text-slate-400">▾</span>
+          </button>
+
+          {/* Daraja: Oson / O'rta / Qiyin */}
+          <div className="flex items-center p-0.5 bg-slate-900/90 border border-slate-800 rounded-xl text-[11px] font-bold">
             <button
               type="button"
               onClick={() => handleDifficultyChange('easy')}
@@ -386,35 +416,36 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
               🔴 Qiyin
             </button>
           </div>
+
+          {/* Masofa: 50m, 100m, 200m, 500m, 1000m */}
+          <div className="hidden md:flex items-center p-0.5 bg-slate-900/90 border border-slate-800 rounded-xl text-[10px] font-mono font-bold">
+            {[50, 100, 200, 500, 1000].map((dist) => (
+              <button
+                key={dist}
+                type="button"
+                onClick={() => handleDistanceChange(dist)}
+                className={`px-1.5 py-0.5 rounded-lg transition-all cursor-pointer ${
+                  selectedDistance === dist
+                    ? 'bg-emerald-400 text-slate-950 font-black shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {dist}m
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* O'ng tomon: Mashina, Ism, Ovoz va Masofa */}
-        <div className="flex items-center gap-2 text-xs font-mono">
-          {/* Mashina tanlash tugmasi */}
+        {/* O'ng qism: Ovoz, Yo'riqnoma va TUGATISH (Chiqish) */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Yo'riqnoma tugmasi */}
           <button
             type="button"
-            onClick={() => setIsCarModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-slate-200 cursor-pointer transition-colors active:scale-95"
-            title="Mashinani almashtirish"
+            onClick={() => setShowInstructionModal(true)}
+            className="p-1.5 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-emerald-300 rounded-xl cursor-pointer transition-colors"
+            title="Qoidalar va yoʻriqnomani koʻrish"
           >
-            <span
-              className="w-2.5 h-2.5 rounded-full border border-slate-600 shrink-0"
-              style={{ backgroundColor: selectedCar.bodyColor }}
-            />
-            <span className="font-bold text-white max-w-[80px] sm:max-w-none truncate">{selectedCar.name.split(' ')[0]}</span>
-            <span className="text-[10px] text-slate-400">▾</span>
-          </button>
-
-          {/* Foydalanuvchi ismi */}
-          <button
-            type="button"
-            onClick={() => setIsNameModalOpen(true)}
-            className="flex items-center gap-1 px-2 py-1 bg-slate-900/80 hover:bg-slate-850 border border-slate-800 rounded-xl text-cyan-300 font-bold cursor-pointer transition-colors"
-            title="Ismni o'zgartirish"
-          >
-            <span>👤</span>
-            <span className="max-w-[70px] sm:max-w-none truncate">{userName}</span>
-            <Edit3 className="w-2.5 h-2.5 text-slate-500" />
+            <HelpCircle className="w-4 h-4" />
           </button>
 
           {/* Ovoz sozlamasi */}
@@ -426,37 +457,30 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
               title="Ovozni almashtirish"
             >
               {soundType === 'off' ? (
-                <VolumeX className="w-3.5 h-3.5 text-rose-400" />
+                <VolumeX className="w-4 h-4 text-rose-400" />
               ) : (
-                <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                <Volume2 className="w-4 h-4 text-emerald-400" />
               )}
             </button>
           )}
 
-          {/* Masofani almashtirish (50, 100, 200, 500, 1000m) */}
-          <div className="flex items-center p-0.5 bg-slate-900/90 border border-slate-800 rounded-xl text-[10px] font-mono font-bold">
-            <span className="hidden sm:inline text-slate-500 pl-1.5 pr-0.5 text-[9px] font-sans">Masofa:</span>
-            {[50, 100, 200, 500, 1000].map((dist) => (
-              <button
-                key={dist}
-                type="button"
-                onClick={() => handleDistanceChange(dist)}
-                className={`px-1.5 py-0.5 rounded-lg transition-all cursor-pointer ${
-                  selectedDistance === dist
-                    ? 'bg-gradient-to-r from-emerald-400 to-green-500 text-slate-950 font-black shadow-sm'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
-                }`}
-                title={`${dist} metr masofadagi poyga`}
-              >
-                {dist}m
-              </button>
-            ))}
-          </div>
+          {/* TUGATISH (Poygani to'xtatish va bosh sahifaga qaytish) */}
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black text-rose-100 hover:text-white bg-rose-950/90 hover:bg-rose-900 border border-rose-600/90 rounded-xl transition-all shadow-md shadow-rose-950/40 cursor-pointer active:scale-95"
+              title="Poygani tugatish va bosh menyuga qaytish"
+            >
+              <span>🛑</span>
+              <span>Tugatish</span>
+            </button>
+          )}
         </div>
-      </div>
+      </header>
 
-      {/* 2. Haqiqiy Arcade Poyga Trassasi va 3-2-1 Countdown Overlay */}
-      <div className="my-auto py-1 relative">
+      {/* 2. ASOSIY ASFALT POYGA TRASSASI (Kompyuter ekranini to'liq egallaydi) */}
+      <div className="flex-1 min-h-0 my-1 relative flex flex-col justify-center w-full">
         <HighwayRaceTrack
           racers={racers}
           roomName={
@@ -502,8 +526,8 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
         )}
       </div>
 
-      {/* 3. Spidometr va Bir Qatorlik Yozish Maydoni */}
-      <div className="pt-1">
+      {/* 3. SPIDOMETR VA MATN YOZISH MAYDONI (Ekranning pastki qismida joylashgan) */}
+      <div className="shrink-0 w-full pt-1 pb-0.5">
         {(() => {
           const userRacer = racers.find(r => r.isUser);
           const userLiveRank = userRacer?.rank || 1;
@@ -524,7 +548,109 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
         })()}
       </div>
 
-      {/* 1. Poyga yakunida Chiroyli G'alaba Animatsiyasi (FinishCelebrationOverlay) */}
+      {/* 4. POYGA BOSHLANISHDAN OLDIN KO'RSATILADIGAN YO'RIQNOMA MODALI */}
+      {showInstructionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-lg bg-[#0b1222] border-2 border-emerald-500/50 rounded-3xl p-5 sm:p-7 shadow-[0_0_50px_rgba(16,185,129,0.25)] text-slate-100 flex flex-col gap-4">
+            {/* Modal Sarlavhasi */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-xl">
+                  🏁
+                </span>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white font-mono tracking-tight">
+                    Yakka Poyga — Yoʻriqnoma
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Oʻyin boshlanishidan oldin muhim tushuntirish
+                  </p>
+                </div>
+              </div>
+              <div className="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-[10px] font-mono text-emerald-400 font-bold">
+                {selectedDistance}m · {difficulty === 'easy' ? 'Oson' : difficulty === 'medium' ? 'Oʻrta' : 'Qiyin'}
+              </div>
+            </div>
+
+            {/* Asosiy ko'rsatma: Yozish maydoni pastda joylashganligi */}
+            <div className="p-4 bg-emerald-950/40 border-2 border-emerald-500/60 rounded-2xl relative overflow-hidden space-y-2.5 shadow-inner">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 font-black flex items-center justify-center shrink-0 text-base shadow-lg shadow-emerald-500/40 animate-bounce">
+                  ⬇️
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-emerald-300 uppercase tracking-wide">
+                    DIQQAT: Matn yozish maydoni sahifaning pastida!
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed mt-1">
+                    Oʻyin boshlangach, <strong>sahifaning eng pastki qismidagi</strong> kiritish maydoniga eʼtibor qarating. Soʻzlarni ketma-ket yozib, har bir soʻzdan keyin <strong>Space (Probel)</strong> bosing.
+                  </p>
+                </div>
+              </div>
+
+              {/* Ekran anatomiyasi sxemasi */}
+              <div className="mt-3 p-2.5 bg-slate-950/90 border border-slate-800 rounded-xl space-y-1.5 font-mono text-[11px]">
+                <div className="flex items-center justify-between text-slate-400 px-2 py-1 bg-slate-900/60 rounded border border-slate-800/80">
+                  <span>⬆️ Yuqorida:</span>
+                  <span className="text-slate-300 font-bold">Header (Natija, Daraja, Tugatish)</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-400 px-2 py-1 bg-slate-900/60 rounded border border-slate-800/80">
+                  <span>🛣️ Oʻrtada:</span>
+                  <span className="text-slate-300 font-bold">Trassa va Mashinalar harakati</span>
+                </div>
+                <div className="flex items-center justify-between text-emerald-300 px-2 py-1.5 bg-emerald-900/40 rounded border border-emerald-500/60 animate-pulse font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <span>⬇️</span> <span>PASTDA:</span>
+                  </span>
+                  <span className="text-emerald-200">YOZISH MAYDONI (Spidometr + Matn) ⌨️</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Qoidalar kartochkalari */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2.5 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center gap-2">
+                <span className="text-base">🏎️</span>
+                <div>
+                  <div className="font-bold text-white">Tezlik</div>
+                  <div className="text-[10px] text-slate-400">Tez yozsangiz, mashina tezroq yuradi</div>
+                </div>
+              </div>
+              <div className="p-2.5 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center gap-2">
+                <span className="text-base">🎯</span>
+                <div>
+                  <div className="font-bold text-white">Aniqlik</div>
+                  <div className="text-[10px] text-slate-400">Xatosiz yozish gʻalabaga olib boradi</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Haydovchi va mashina xulosasi */}
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-300 font-mono">
+              <span className="flex items-center gap-1.5">
+                <span>Haydovchi:</span>
+                <strong className="text-cyan-300">{userName}</strong>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: selectedCar.bodyColor }} />
+                <strong className="text-white">{selectedCar.name}</strong>
+              </span>
+            </div>
+
+            {/* HARAKAT TUGMASI: Tushunarli! Poygani Boshlash */}
+            <button
+              type="button"
+              onClick={handleAcknowledgeInstructions}
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-slate-950 font-black text-sm uppercase tracking-wider rounded-2xl shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-all transform active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+            >
+              <span>Tushunarli! Poygani Boshlash (3-2-1)</span>
+              <span className="text-base">🚀</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 5. G'alaba Animatsiyasi (FinishCelebrationOverlay) */}
       {raceStats && showCelebration && (
         <FinishCelebrationOverlay
           stats={raceStats}
@@ -550,12 +676,11 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           onNextDifficulty={() => {
             const nextDiff: DifficultyLevel = difficulty === 'easy' ? 'medium' : difficulty === 'medium' ? 'hard' : 'easy';
             handleDifficultyChange(nextDiff);
-            startCountdown();
           }}
         />
       )}
 
-      {/* 2. Batafsil Natijalar Modali (Foydalanuvchi "Batafsil" tugmasini bossa) */}
+      {/* 6. Batafsil Natijalar Modali */}
       {raceStats && showDetailedModal && (
         <RaceResultsModal
           stats={raceStats}
@@ -580,7 +705,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
         />
       )}
 
-      {/* 3. Mashina Tanlash Modali (O'yin ichida tezkor almashtirish) */}
+      {/* 7. Mashina Tanlash Modali */}
       {isCarModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-md bg-[#090e1c] border border-cyan-500/40 rounded-2xl shadow-2xl p-4 sm:p-5 text-slate-100">
@@ -613,7 +738,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
         </div>
       )}
 
-      {/* 4. Ismni Tahrirlash Modali */}
+      {/* 8. Ismni Tahrirlash Modali */}
       {isNameModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-sm bg-[#090e1c] border border-cyan-500/40 rounded-2xl shadow-2xl p-4 text-slate-100">
