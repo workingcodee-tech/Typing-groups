@@ -6,7 +6,7 @@ import { FinishCelebrationOverlay } from './FinishCelebrationOverlay';
 import { CarSelector } from './CarSelector';
 import { generate5000Words } from '../data/words';
 import { RaceStats, DifficultyLevel } from '../types';
-import { Users, Volume2, VolumeX, X, Edit3, HelpCircle } from 'lucide-react';
+import { Users, Volume2, VolumeX, X, Edit3, HelpCircle, Maximize2, Minimize2 } from 'lucide-react';
 import { FAMOUS_CARS } from '../data/cars';
 import { sounds, SwitchSoundType } from '../utils/soundEffects';
 import { sortRacersByRank } from '../utils/raceRanking';
@@ -65,6 +65,42 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
 
   // Poyga oldidan yo'riqnoma ko'rsatish modali
   const [showInstructionModal, setShowInstructionModal] = useState<boolean>(true);
+  const [enableFullscreenOnStart, setEnableFullscreenOnStart] = useState<boolean>(true);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
+    try {
+      return !!document.fullscreenElement;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      try {
+        setIsFullscreen(!!document.fullscreenElement);
+      } catch {
+        // ignore
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.warn("Butun ekranni o'zgartirishda xatolik:", err);
+    }
+  };
 
   const [selectedDistance, setSelectedDistance] = useState<number>(initialDistance);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(initialDifficulty);
@@ -155,8 +191,17 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
   }, [initialRacers]);
 
   // Yo'riqnomani tasdiqlab poygani boshlash
-  const handleAcknowledgeInstructions = () => {
+  const handleAcknowledgeInstructions = async () => {
     setShowInstructionModal(false);
+    if (enableFullscreenOnStart && !document.fullscreenElement) {
+      try {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch {
+        // brauzer cheklovi bo'lsa muammosiz davom etadi
+      }
+    }
     startCountdown();
   };
 
@@ -436,8 +481,28 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           </div>
         </div>
 
-        {/* O'ng qism: Ovoz, Yo'riqnoma va TUGATISH (Chiqish) */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* O'ng qism: Butun ekran, Ovoz, Yo'riqnoma va TUGATISH (Chiqish) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Butun ekran rejimi tugmasi */}
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-emerald-300 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
+            title={isFullscreen ? "Butun ekrandan chiqish" : "Butun ekranga oʻtish (Toʻliq ekran)"}
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">Kichraytirish</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="hidden sm:inline">Butun ekran</span>
+              </>
+            )}
+          </button>
+
           {/* Yo'riqnoma tugmasi */}
           <button
             type="button"
@@ -636,6 +701,25 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
                 <strong className="text-white">{selectedCar.name}</strong>
               </span>
             </div>
+
+            {/* Butun ekran rejimini tasdiqlash opsiyasi */}
+            <label className="flex items-center gap-3 p-2.5 sm:p-3 bg-slate-900/90 border border-slate-700/80 rounded-2xl cursor-pointer hover:border-emerald-500/50 transition-colors">
+              <input
+                type="checkbox"
+                checked={enableFullscreenOnStart}
+                onChange={(e) => setEnableFullscreenOnStart(e.target.checked)}
+                className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-950 border-slate-700 cursor-pointer"
+              />
+              <div className="text-xs">
+                <div className="font-bold text-white flex items-center gap-1.5">
+                  <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Qurilmada butun ekran rejimini yoqish (Tavsiya etiladi)</span>
+                </div>
+                <div className="text-[10px] text-slate-400">
+                  Poyga maydoni butun ekranni egallaydi va chalgʻituvchi elementlarsiz qulay yozish imkonini beradi
+                </div>
+              </div>
+            </label>
 
             {/* HARAKAT TUGMASI: Tushunarli! Poygani Boshlash */}
             <button
