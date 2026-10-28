@@ -15,6 +15,7 @@ export interface HighwayRacer {
   finishRank?: number;
   isUser: boolean;
   rank?: number;
+  isBraking?: boolean;
 }
 
 interface HighwayRaceTrackProps {
@@ -94,7 +95,7 @@ export const HighwayRaceTrack: React.FC<HighwayRaceTrackProps> = ({
         <div className="flex-1 flex flex-col justify-around divide-y divide-dashed divide-slate-700/50 py-0.5">
           {racers.map((racer, index) => {
             const safeProgress = Math.min(100, Math.max(0, racer.progress));
-            // Start chizig'idan finishgacha silliq siljish
+            // Start chizig'idan finishgacha o'ta silliq siljish
             const leftPercent = 2 + (safeProgress * 0.81);
 
             return (
@@ -112,12 +113,12 @@ export const HighwayRaceTrack: React.FC<HighwayRaceTrackProps> = ({
                 {/* Yo'lning o'rtasidagi oq chiziqchalar (dashed lane divider) */}
                 <div className="absolute inset-x-8 bottom-0 h-[1px] bg-dashed border-b border-dashed border-slate-700/60" />
 
-                {/* Yon tomondan harakatlanuvchi sport avtomobili */}
+                {/* Yon tomondan harakatlanuvchi sport avtomobili (Ultra-silliq harakatlanish) */}
                 <div
                   className="absolute z-20 pointer-events-none will-change-[left]"
                   style={{
                     left: `${leftPercent}%`,
-                    transition: 'left 0.35s cubic-bezier(0.25, 1, 0.5, 1)'
+                    transition: 'left 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.25s ease-out'
                   }}
                 >
                   <CarSprite
@@ -126,6 +127,7 @@ export const HighwayRaceTrack: React.FC<HighwayRaceTrackProps> = ({
                     currentWpm={racer.currentWpm}
                     isUser={racer.isUser}
                     rank={racer.rank || (index + 1)}
+                    isBraking={racer.isBraking}
                   />
                 </div>
               </div>

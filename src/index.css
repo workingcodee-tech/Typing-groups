@@ -53,3 +53,85 @@
 .typing-caret {
   animation: caretBlink 0.9s ease-in-out infinite;
 }
+
+/* 🏎️ Realistik Poyga Mashinasi Animatsiyalari (G'ildirak aylanishi, podveska, nitro va tormoz) */
+@keyframes carWheelSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-wheel-spin {
+  animation: carWheelSpin 0.32s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.animate-wheel-spin-fast {
+  animation: carWheelSpin 0.16s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes carSuspensionBounce {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-1.2px);
+  }
+}
+
+.animate-car-drive {
+  animation: carSuspensionBounce 0.18s ease-in-out infinite;
+}
+
+@keyframes exhaustFlameFlicker {
+  0%, 100% {
+    transform: scaleX(1) scaleY(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scaleX(1.4) scaleY(1.2);
+    opacity: 1;
+  }
+}
+
+.animate-flame-flicker {
+  animation: exhaustFlameFlicker 0.12s ease-in-out infinite;
+  transform-origin: right center;
+}
+
+@keyframes brakeSkidSmoke {
+  0% {
+    opacity: 0.85;
+    transform: translate(0, 0) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-18px, -5px) scale(1.6);
+  }
+}
+
+.animate-skid-smoke {
+  animation: brakeSkidSmoke 0.5s ease-out forwards;
+}
+
+@keyframes brakeJerk {
+  0%, 100% {
+    transform: translateX(0px);
+  }
+  30% {
+    transform: translateX(-3px);
+  }
+  70% {
+    transform: translateX(1px);
+  }
+}
+
+.animate-brake-jerk {
+  animation: brakeJerk 0.4s ease-out;
+}

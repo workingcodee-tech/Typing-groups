@@ -87,6 +87,12 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
   const [wpmHistory, setWpmHistory] = useState<number[]>([]);
   const [wordHistory, setWordHistory] = useState<Record<number, WordHistoryItem>>({});
 
+  // 1-band: Har bir xato uchun mashinani orqaga harakatlantirish va 2 ta harf jarima qarzi
+  const [penaltyChars, setPenaltyChars] = useState<number>(0);
+  const [mistakeCount, setMistakeCount] = useState<number>(0);
+  const [penaltyFlash, setPenaltyFlash] = useState<boolean>(false);
+  const penaltyTimerRef = useRef<number | null>(null);
+
   // Single-line gorizontal siljish (x-axis transform)
   const [scrollX, setScrollX] = useState<number>(0);
   const wordsContainerRef = useRef<HTMLDivElement>(null);
@@ -120,6 +126,10 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    if (penaltyTimerRef.current) {
+      clearTimeout(penaltyTimerRef.current);
+      penaltyTimerRef.current = null;
+    }
     setCurrentWordIndex(0);
     setCurrentInput('');
     setStartTime(null);
@@ -128,6 +138,9 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
     setTotalCorrectChars(0);
     setTotalIncorrectChars(0);
     setTotalKeystrokes(0);
+    setPenaltyChars(0);
+    setMistakeCount(0);
+    setPenaltyFlash(false);
     setWpmHistory([]);
     setWordHistory({});
     setScrollX(0);
@@ -258,26 +271,31 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
     const actualWord = cleanInput;
     const isMatch = actualWord.length > 0 && actualWord === currentWord;
     let wordCorrect = 0;
-    let wordErrors = 0;
 
-    if (actualWord.length > 0) {
-      for (let i = 0; i < currentWord.length; i++) {
-        if (actualWord[i] === currentWord[i]) {
-          wordCorrect++;
-        } else {
-          wordErrors++;
-        }
+    for (let i = 0; i < Math.min(actualWord.length, currentWord.length); i++) {
+      if (actualWord[i] === currentWord[i]) {
+        wordCorrect++;
       }
-      if (actualWord.length > currentWord.length) {
-        wordErrors += (actualWord.length - currentWord.length);
-      }
-    } else {
-      // Hech narsa yozilmasdan bo'sh joy bosilganda so'z harflari xato hisoblanadi
-      wordErrors += currentWord.length;
+    }
+
+    // Agar so'z to'liq yozilmay o'tkazib yuborilgan bo'lsa (skipped characters)
+    let skippedChars = 0;
+    if (actualWord.length < currentWord.length) {
+      skippedChars = currentWord.length - actualWord.length;
+    }
+
+    // Har bir o'tkazib yuborilgan harf uchun 2 ta harf jarima
+    const skippedPenalty = skippedChars * 2;
+    const nextPenalty = penaltyChars + skippedPenalty;
+    if (skippedPenalty > 0) {
+      setPenaltyChars(nextPenalty);
+      setPenaltyFlash(true);
+      if (penaltyTimerRef.current) clearTimeout(penaltyTimerRef.current);
+      penaltyTimerRef.current = window.setTimeout(() => setPenaltyFlash(false), 950);
     }
 
     const nextCorrect = totalCorrectChars + wordCorrect + (isMatch ? 1 : 0);
-    const nextIncorrect = totalIncorrectChars + wordErrors;
+    const nextIncorrect = totalIncorrectChars + skippedChars;
 
     setTotalCorrectChars(nextCorrect);
     setTotalIncorrectChars(nextIncorrect);
@@ -305,13 +323,15 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
       inputRef.current.value = '';
     }
 
-    const progressPercent = Math.min(100, Math.max(0, (nextCorrect / targetChars) * 100));
+    // 1-band talabi: Mashina o'rnini xatolar hisobiga orqaga chekintirish
+    const effectiveCorrect = Math.max(0, nextCorrect - nextPenalty);
+    const progressPercent = Math.min(100, Math.max(0, Number(((effectiveCorrect / targetChars) * 100).toFixed(2))));
     const currentMeters = Math.min(distance, Math.round((progressPercent / 100) * distance));
 
     const now = Date.now();
     const seconds = startTime ? Math.max(0.1, (now - startTime) / 1000) : 0.1;
     const minutes = seconds / 60;
-    const liveWpm = Math.max(0, Math.round((nextCorrect / 5) / minutes));
+    const liveWpm = Math.max(0, Math.round((effectiveCorrect / 5) / minutes));
     const totalChars = nextCorrect + nextIncorrect;
     const liveAccuracy = totalChars > 0 ? Math.round((nextCorrect / totalChars) * 100) : 100;
 
@@ -325,10 +345,10 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
     );
 
     // Agar belgilangan masofa to'liq bosib o'tilsa
-    if (nextCorrect >= targetChars) {
-      finishSession(seconds, nextCorrect);
+    if (effectiveCorrect >= targetChars) {
+      finishSession(seconds, effectiveCorrect);
     }
-  }, [currentWordIndex, currentInput, activeWords, totalCorrectChars, totalIncorrectChars, targetChars, distance, startTime, finishSession]);
+  }, [currentWordIndex, currentInput, activeWords, totalCorrectChars, totalIncorrectChars, penaltyChars, targetChars, distance, startTime, finishSession]);
 
   // Mobil klaviaturalarda Space / Bo'sh joyni ushlash (beforeinput - mobil brauzerlarda eng aniq usul)
   const handleBeforeInput = (e: React.FormEvent<HTMLInputElement>) => {
@@ -378,9 +398,46 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
     }
 
     const val = rawVal;
+    const prevVal = currentInput;
     setCurrentInput(val);
 
-    const currentWord = wordsList[currentWordIndex] || '';
+    const currentWord = activeWords[currentWordIndex] || '';
+
+    // Yangi qo'shilgan harflarni xatolikka tekshirish
+    let newlyAddedErrors = 0;
+    if (val.length > prevVal.length) {
+      for (let i = prevVal.length; i < val.length; i++) {
+        if (i < currentWord.length) {
+          if (val[i] !== currentWord[i]) {
+            newlyAddedErrors++;
+          }
+        } else {
+          // So'z uzunligidan oshiqcha harf kiritilsa xato
+          newlyAddedErrors++;
+        }
+      }
+    }
+
+    let activePenalty = penaltyChars;
+    let nextIncorrect = totalIncorrectChars;
+
+    if (newlyAddedErrors > 0) {
+      // 1-band talabi: Har bir xato kiritilganda mashina orqaga chekinadi
+      // Har bir xato o'rnini to'ldirish uchun 2 ta to'g'ri harf yozish talab etiladi
+      const addedPenalty = newlyAddedErrors * 2;
+      activePenalty = penaltyChars + addedPenalty;
+      nextIncorrect = totalIncorrectChars + newlyAddedErrors;
+
+      setPenaltyChars(activePenalty);
+      setTotalIncorrectChars(nextIncorrect);
+      setMistakeCount((m) => m + newlyAddedErrors);
+      setPenaltyFlash(true);
+
+      if (penaltyTimerRef.current) clearTimeout(penaltyTimerRef.current);
+      penaltyTimerRef.current = window.setTimeout(() => setPenaltyFlash(false), 950);
+    }
+
+    // Joriy so'z ichida to'g'ri terilgan harflar
     let correctInCurrent = 0;
     for (let i = 0; i < Math.min(val.length, currentWord.length); i++) {
       if (val[i] === currentWord[i]) {
@@ -388,32 +445,36 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
       }
     }
 
-    const effectiveCorrect = totalCorrectChars + correctInCurrent;
-    const progressPercent = Math.min(100, Math.max(0, (effectiveCorrect / targetChars) * 100));
+    const totalGrossCorrect = totalCorrectChars + correctInCurrent;
+    // Samarali to'g'ri harflar (jarima hisobga olingan holda)
+    const effectiveCorrect = Math.max(0, totalGrossCorrect - activePenalty);
+    // Silliq harakatlanish uchun foizni float ko'rinishida berish
+    const progressPercent = Math.min(100, Math.max(0, Number(((effectiveCorrect / targetChars) * 100).toFixed(2))));
     const currentMeters = Math.min(distance, Math.round((progressPercent / 100) * distance));
 
     const now = Date.now();
     const seconds = startTime ? Math.max(0.1, (now - startTime) / 1000) : 0.1;
     const minutes = seconds / 60;
     const liveWpm = Math.max(0, Math.round((effectiveCorrect / 5) / minutes));
-    const totalChars = effectiveCorrect + totalIncorrectChars;
-    const liveAccuracy = totalChars > 0 ? Math.round((effectiveCorrect / totalChars) * 100) : 100;
+    const totalChars = totalGrossCorrect + nextIncorrect;
+    const liveAccuracy = totalChars > 0 ? Math.round((totalGrossCorrect / totalChars) * 100) : 100;
 
     onProgressUpdateRef.current(
       progressPercent,
       liveWpm,
       liveAccuracy,
       totalChars,
-      totalIncorrectChars,
+      nextIncorrect,
       currentMeters
     );
 
     // Tovush effektlari
-    if (val.length > currentInput.length) {
-      setTotalKeystrokes((prev) => prev + (val.length - currentInput.length));
+    if (val.length > prevVal.length) {
+      setTotalKeystrokes((prev) => prev + (val.length - prevVal.length));
       const lastChar = val[val.length - 1];
       const targetChar = currentWord[val.length - 1];
-      sounds.playKey(lastChar, false, lastChar !== targetChar);
+      const isError = lastChar !== targetChar || val.length > currentWord.length;
+      sounds.playKey(lastChar, false, isError);
     }
 
     // Agar belgilangan masofa to'liq bosib o'tilsa (progress 100%)
@@ -462,12 +523,6 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
       setCurrentInput('');
       return;
     }
-
-    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      const targetChar = (wordsList[currentWordIndex] || '')[currentInput.length];
-      const isError = e.key !== targetChar;
-      sounds.playKey(e.key, false, isError);
-    }
   };
 
   // Tab bilan qayta boshlash
@@ -482,10 +537,17 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
     return () => window.removeEventListener('keydown', handleGlobalKey);
   }, [handleReset]);
 
-  // Jonli hisob-kitoblar
+  // Jonli hisob-kitoblar (Xatolar tufayli orqaga chekinish inobatga olingan holda)
   const minutes = Math.max(0.01, elapsedTime / 60);
-  const liveWpm = startTime && totalCorrectChars > 0 ? Math.round((totalCorrectChars / 5) / minutes) : 0;
-  const currentProgressPercent = Math.min(100, Math.max(0, (totalCorrectChars / targetChars) * 100));
+  const currentWord = activeWords[currentWordIndex] || '';
+  let correctInCurrentLive = 0;
+  for (let i = 0; i < Math.min(currentInput.length, currentWord.length); i++) {
+    if (currentInput[i] === currentWord[i]) correctInCurrentLive++;
+  }
+  const totalGrossLive = totalCorrectChars + correctInCurrentLive;
+  const effectiveLive = Math.max(0, totalGrossLive - penaltyChars);
+  const liveWpm = startTime && effectiveLive > 0 ? Math.round((effectiveLive / 5) / minutes) : 0;
+  const currentProgressPercent = Math.min(100, Math.max(0, Number(((effectiveLive / targetChars) * 100).toFixed(2))));
   const currentMeters = Math.min(distance, Math.round((currentProgressPercent / 100) * distance));
 
   // Rasmdagi format: 0:01.9 (sekundomer ko'rinishida)
@@ -500,9 +562,9 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
 
   return (
     <div className="w-full flex flex-col gap-1.5 shrink-0">
-      {/* 1. TOP ARCADE HUD: WPM, O'RNINGIZ, MASOFA VA SEKUNDOMER */}
+      {/* 1. TOP ARCADE HUD: WPM, O'RNINGIZ, JARIMA VA SEKUNDOMER */}
       <div className="flex items-center justify-between px-1 gap-1.5 flex-wrap sm:flex-nowrap">
-        {/* Chapdagi WPM va O'RNINGIZ nishonlari */}
+        {/* Chapdagi WPM, O'RNINGIZ va Jarima nishonlari */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Jonli WPM */}
           <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 bg-[#111827]/90 border border-slate-700/80 rounded-xl shadow-lg backdrop-blur-xs">
@@ -536,6 +598,20 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
                   {userRank}-oʻrin <span className="text-[10px] text-slate-400 font-normal">/{totalRacers || 4}</span>
                 </span>
               </div>
+            </div>
+          )}
+
+          {/* Xatolik tufayli orqaga chekinish jonli ogohlantirishi */}
+          {penaltyFlash && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-600 text-white font-black text-xs font-mono rounded-xl border border-rose-300 shadow-[0_0_12px_#ef4444] animate-bounce whitespace-nowrap">
+              <span>⚠️</span>
+              <span>Orqaga: -2 harf jarima!</span>
+            </div>
+          )}
+          {penaltyChars > 0 && !penaltyFlash && (
+            <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-rose-950/70 border border-rose-600/50 rounded-xl text-[11px] font-mono text-rose-300">
+              <span>🛑</span>
+              <span>Jarima: <b className="text-white">-{penaltyChars}</b> harf</span>
             </div>
           )}
         </div>

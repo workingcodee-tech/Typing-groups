@@ -7,6 +7,7 @@ interface CarSpriteProps {
   currentWpm: number;
   isUser: boolean;
   rank?: number;
+  isBraking?: boolean;
 }
 
 export const CarSprite: React.FC<CarSpriteProps> = ({
@@ -14,7 +15,8 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
   playerName,
   currentWpm,
   isUser,
-  rank = 1
+  rank = 1,
+  isBraking = false
 }) => {
   const car: RacingCar = FAMOUS_CARS.find((c) => c.id === carId) || FAMOUS_CARS[0];
   const isMoving = currentWpm > 0;
@@ -33,14 +35,34 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
         </div>
       )}
 
-      {/* 2. Haqiqiy Supercar / Sport Avtomobili (Realistik Side-Profile) */}
-      <div className="relative w-28 h-12 sm:w-32 sm:h-14 flex items-center justify-center filter drop-shadow-[0_6px_10px_rgba(0,0,0,0.85)]">
+      {/* Xato qilinganda orqaga harakat va tormoz ko'rsatkichi */}
+      {isUser && isBraking && (
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-40 whitespace-nowrap">
+          <div className="px-2 py-0.5 bg-rose-600/95 text-white font-black text-[9px] font-mono rounded-full shadow-[0_0_10px_#ef4444] border border-rose-300 animate-bounce flex items-center gap-1">
+            <span>⚠️</span>
+            <span>Xatolik: -2 harf (Orqaga)</span>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Haqiqiy Supercar / Sport Avtomobili (Silliq podveska va tormoz animatsiyasi bilan) */}
+      <div className={`relative w-28 h-12 sm:w-32 sm:h-14 flex items-center justify-center filter drop-shadow-[0_6px_10px_rgba(0,0,0,0.85)] ${
+        isMoving && !isBraking ? 'animate-car-drive' : ''
+      } ${isBraking ? 'animate-brake-jerk' : ''}`}>
+        {/* Tormoz / Xatolik vaqtida shina tutuni */}
+        {isBraking && (
+          <div className="absolute left-4 bottom-0 flex items-center pointer-events-none z-30">
+            <div className="w-3.5 h-3.5 rounded-full bg-slate-300/70 blur-[1px] animate-skid-smoke" />
+            <div className="w-3 h-3 rounded-full bg-slate-200/60 blur-[1px] animate-skid-smoke" style={{ animationDelay: '0.08s' }} />
+          </div>
+        )}
+
         {/* Yuqori tezlikdagi toza sport nitro alangasi */}
-        {isMoving && (
-          <div className="absolute -left-5 top-[60%] -translate-y-1/2 flex items-center pointer-events-none">
+        {isMoving && !isBraking && (
+          <div className="absolute -left-5 top-[60%] -translate-y-1/2 flex items-center pointer-events-none animate-flame-flicker">
             <span
               className={`h-1.5 bg-gradient-to-l from-cyan-400 via-blue-500 to-transparent rounded-full ${
-                isHighSpeed ? 'w-5 opacity-90 shadow-[0_0_6px_#38bdf8]' : 'w-2.5 opacity-70'
+                isHighSpeed ? 'w-6 opacity-95 shadow-[0_0_8px_#38bdf8]' : 'w-3 opacity-80'
               }`}
             />
           </div>
@@ -324,15 +346,25 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
           <circle cx="212" cy="53" r="2" fill="#38bdf8" />
           <circle cx="216" cy="54" r="1.5" fill="#ffffff" />
 
-          {/* 9. Orqa Qizil LED Chiroq (Slim Taillight) */}
-          <rect x="15" y="47" width="4.5" height="6.5" rx="1.5" fill="#ef4444" stroke="#7f1d1d" strokeWidth="0.6" />
-          <rect x="16" y="49" width="3" height="2" fill="#fecaca" />
+          {/* 9. Orqa Qizil LED Chiroq (Slim Taillight - tormozda yorqin yonadi) */}
+          <rect
+            x="15"
+            y="47"
+            width="4.5"
+            height="6.5"
+            rx="1.5"
+            fill={isBraking ? '#ff1e1e' : '#ef4444'}
+            stroke={isBraking ? '#b91c1c' : '#7f1d1d'}
+            strokeWidth="0.8"
+            filter={isBraking ? 'drop-shadow(0 0 6px #ff0000)' : undefined}
+          />
+          <rect x="16" y="49" width="3" height="2" fill={isBraking ? '#ffffff' : '#fecaca'} />
 
           {/* 10. G'ildirak kamarlari (Wheel Arches) */}
           <path d="M 37 63 A 19 19 0 0 1 79 63 Z" fill="#090d16" />
           <path d="M 151 63 A 19 19 0 0 1 193 63 Z" fill="#090d16" />
 
-          {/* 11. ORQA G'ILDIRAK (Shina, po'lat rotor, sport kaliperi va qotishma disk) */}
+          {/* 11. ORQA G'ILDIRAK (Shina, po'lat rotor, sport kaliperi va aylanuvchi qotishma disk) */}
           <g transform="translate(58, 63)">
             {/* Shina (Pirelli sport kauchuk) */}
             <circle cx="0" cy="0" r="16.5" fill="#0b0f19" stroke="#1e293b" strokeWidth="1.2" />
@@ -355,8 +387,8 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
             <circle cx="0" cy="0" r="4.5" fill="#0f172a" stroke="#94a3b8" strokeWidth="0.8" />
             <circle cx="0" cy="0" r="2" fill="#e2e8f0" />
 
-            {/* 6 ta markaziy sport spitsa (Spokes - markazga mustahkamlangan, yulduzcha hosil qilmaydi) */}
-            <g>
+            {/* 6 ta markaziy sport spitsa - Poyga paytida real aylanuvchi disk */}
+            <g className={isMoving ? (isHighSpeed ? 'animate-wheel-spin-fast' : 'animate-wheel-spin') : ''}>
               <line x1="0" y1="-8.5" x2="0" y2="8.5" stroke="#cbd5e1" strokeWidth="1.4" strokeLinecap="round" />
               <line x1="-8.5" y1="0" x2="8.5" y2="0" stroke="#cbd5e1" strokeWidth="1.4" strokeLinecap="round" />
               <line x1="-6" y1="-6" x2="6" y2="6" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" />
@@ -364,7 +396,7 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
             </g>
           </g>
 
-          {/* 12. OLD G'ILDIRAK (Shina, po'lat rotor, sport kaliperi va qotishma disk) */}
+          {/* 12. OLD G'ILDIRAK (Shina, po'lat rotor, sport kaliperi va aylanuvchi qotishma disk) */}
           <g transform="translate(172, 63)">
             {/* Shina */}
             <circle cx="0" cy="0" r="16.5" fill="#0b0f19" stroke="#1e293b" strokeWidth="1.2" />
@@ -387,8 +419,8 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
             <circle cx="0" cy="0" r="4.5" fill="#0f172a" stroke="#94a3b8" strokeWidth="0.8" />
             <circle cx="0" cy="0" r="2" fill="#e2e8f0" />
 
-            {/* 6 ta markaziy sport spitsa */}
-            <g>
+            {/* 6 ta markaziy sport spitsa - Poyga paytida real aylanuvchi disk */}
+            <g className={isMoving ? (isHighSpeed ? 'animate-wheel-spin-fast' : 'animate-wheel-spin') : ''}>
               <line x1="0" y1="-8.5" x2="0" y2="8.5" stroke="#cbd5e1" strokeWidth="1.4" strokeLinecap="round" />
               <line x1="-8.5" y1="0" x2="8.5" y2="0" stroke="#cbd5e1" strokeWidth="1.4" strokeLinecap="round" />
               <line x1="-6" y1="-6" x2="6" y2="6" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" />

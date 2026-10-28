@@ -223,10 +223,48 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
     }
   }, [roomData?.status, countdown]);
 
+  const myBrakeTimerRef = useRef<number | null>(null);
+
   // Foydalanuvchi yozayotgan paytda progressni bazaga yuborish
   const handleProgressUpdate = React.useCallback(async (progress: number, wpm: number, accuracy: number, totalChars: number, errors: number) => {
+    // 1. O'yinchi mashinasini darhol silliq yangilash (tarmoq kechikishisiz)
+    setParticipants((prev) => {
+      let isBackward = false;
+      const updated = prev.map((p) => {
+        if (!p.isUser) return p;
+        if (progress < p.progress) {
+          isBackward = true;
+        }
+        return {
+          ...p,
+          progress,
+          currentWpm: wpm,
+          accuracy,
+          finished: progress >= 100,
+          isBraking: isBackward || p.isBraking
+        };
+      });
+
+      if (isBackward) {
+        if (myBrakeTimerRef.current) clearTimeout(myBrakeTimerRef.current);
+        myBrakeTimerRef.current = window.setTimeout(() => {
+          setParticipants((cur) => cur.map((r) => (r.isUser ? { ...r, isBraking: false } : r)));
+        }, 650);
+      }
+
+      const sortedByRank = sortRacersByRank(updated);
+      const rankMap = new Map();
+      sortedByRank.forEach((r, idx) => {
+        rankMap.set(r.id, idx + 1);
+      });
+      return updated.map((r) => ({
+        ...r,
+        rank: rankMap.get(r.id) || 1
+      }));
+    });
+
     const now = Date.now();
-    if (progress < 100 && now - lastUpdateRef.current < 200) {
+    if (progress < 100 && now - lastUpdateRef.current < 180) {
       return;
     }
     lastUpdateRef.current = now;

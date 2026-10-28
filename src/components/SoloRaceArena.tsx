@@ -243,7 +243,8 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
 
           const wpm = botSpeeds[racer.id] || 45;
           const wordsTyped = elapsedSeconds * (wpm / 60);
-          const progress = Math.min(100, Math.round((wordsTyped / targetWords) * 100));
+          // O'ta silliq harakatlanish uchun suzuvchi (float) foizdan foydalanish
+          const progress = Math.min(100, Math.max(0, Number(((wordsTyped / targetWords) * 100).toFixed(2))));
 
           return {
             ...racer,
@@ -262,7 +263,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           rank: rankMap.get(r.id) || 1
         }));
       });
-    }, 200);
+    }, 50);
 
     return () => {
       if (botIntervalRef.current) {
@@ -270,6 +271,9 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
       }
     };
   }, [isRaceActive, raceStats, selectedDistance, difficulty]);
+
+  // Tormoz / orqaga chekinish indikatori uchun ref
+  const brakingTimerRef = useRef<number | null>(null);
 
   // Foydalanuvchi klaviaturada yozganda progress yangilanishi
   const handleProgressUpdate = useCallback((
@@ -281,16 +285,31 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     _currentMeters: number
   ) => {
     setRacers((prev) => {
+      let isBackward = false;
       const updated = prev.map((racer) => {
         if (!racer.isUser) return racer;
+        // Agar yangi progress avvalgisidan kam bo'lsa (xatolik tufayli orqaga chekindi)
+        if (userProgress < racer.progress) {
+          isBackward = true;
+        }
         return {
           ...racer,
           progress: userProgress,
           currentWpm: wpm,
           accuracy,
-          finished: userProgress >= 100
+          finished: userProgress >= 100,
+          isBraking: isBackward || racer.isBraking
         };
       });
+
+      if (isBackward) {
+        if (brakingTimerRef.current) clearTimeout(brakingTimerRef.current);
+        brakingTimerRef.current = window.setTimeout(() => {
+          setRacers((current) =>
+            current.map((r) => (r.isUser ? { ...r, isBraking: false } : r))
+          );
+        }, 650);
+      }
 
       const sorted = sortRacersByRank(updated);
       const rankMap = new Map(sorted.map((r, i) => [r.id, i + 1]));
