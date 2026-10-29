@@ -67,8 +67,8 @@ export const RaceResultsModal: React.FC<RaceResultsModalProps> = ({
   const rankInfo = getRankBadge(userRank);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-xl bg-[#090e1a] border border-cyan-500/30 rounded-2xl p-4 sm:p-5 shadow-2xl shadow-cyan-950/50 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-md animate-backdrop-fade">
+      <div className="relative w-full max-w-xl bg-[#090e1a] border-2 border-cyan-500/50 rounded-2xl p-4 sm:p-5 shadow-[0_0_55px_rgba(6,182,212,0.35)] max-h-[90vh] overflow-y-auto animate-modal-pop">
         {/* Yuqori qism: Nechanchi o'rinda ekani va sarlavha */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b border-slate-800 gap-3">
           <div className="flex items-center gap-3">

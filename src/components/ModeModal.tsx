@@ -73,8 +73,8 @@ export const ModeModal: React.FC<ModeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-lg bg-[#090e1c] border border-cyan-500/40 rounded-2xl shadow-2xl shadow-cyan-950/70 p-4 sm:p-5 text-slate-100 max-h-[90vh] flex flex-col justify-between overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-md animate-backdrop-fade">
+      <div className="relative w-full max-w-lg bg-[#090e1c] border-2 border-cyan-500/50 rounded-2xl shadow-[0_0_50px_rgba(6,182,212,0.35)] p-4 sm:p-5 text-slate-100 max-h-[90vh] flex flex-col justify-between overflow-hidden animate-modal-pop">
         {/* Yopish tugmasi */}
         <button
           onClick={onClose}

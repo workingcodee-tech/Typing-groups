@@ -750,7 +750,7 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
                   <span
                     key={actualIndex}
                     ref={(el) => { wordRefs.current[actualIndex] = el; }}
-                    className="relative inline-flex items-center mr-3 select-none py-1"
+                    className="relative inline-flex items-center mr-3 select-none py-1 px-1 rounded-lg bg-slate-800/40 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)] transition-all"
                   >
                     {word.split('').map((char, cIdx) => {
                       const isTyped = cIdx < currentInput.length;
@@ -762,16 +762,16 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
                         <span key={cIdx} className="relative inline-block leading-none">
                           {/* Aktiv harf ustida chaqnagan kursor */}
                           {isCurrentChar && (
-                            <span className="absolute -left-[1.5px] top-0 bottom-0 w-[2.5px] bg-cyan-400 rounded-full shadow-[0_0_8px_#38bdf8] animate-pulse z-10" />
+                            <span className="absolute -left-[1.5px] top-0 bottom-0 w-[2.5px] bg-cyan-400 rounded-full shadow-[0_0_10px_#38bdf8] typing-caret z-10" />
                           )}
                           <span
-                            className={`transition-colors duration-75 ${
+                            className={`transition-all duration-100 ${
                               isTyped
                                 ? isCorrect
-                                ? 'text-white font-medium'
-                                : 'text-rose-500 font-bold'
+                                  ? 'text-emerald-300 font-bold drop-shadow-[0_0_6px_rgba(52,211,153,0.5)] animate-char-pop'
+                                  : 'text-rose-400 font-bold drop-shadow-[0_0_6px_rgba(244,63,94,0.5)] animate-char-shake'
                                 : isCurrentChar
-                                ? 'text-slate-100 font-medium'
+                                ? 'text-white font-bold'
                                 : 'text-slate-400'
                             }`}
                           >

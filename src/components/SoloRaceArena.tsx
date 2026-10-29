@@ -410,14 +410,18 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     <div className="w-full h-full max-w-none flex flex-col justify-between py-1.5 px-2 sm:px-4 select-none relative overflow-hidden bg-[#070b14]/70">
       {/* 1. GORIZONTAL BIR QATORLI HEADER (O'yin nomi, Yakka poyga, O'yinchi nomi, Daraja, Tugatish) */}
       <header className="w-full flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-5 py-2 bg-slate-950/85 border border-slate-800/80 rounded-2xl shadow-xl backdrop-blur-md shrink-0 whitespace-nowrap overflow-x-auto no-scrollbar">
-        {/* Chap qism: O'yin nomi va Rejim */}
+        {/* Chap qism: Dumaloq Yakka Logo va Rejim */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* O'yin Logosi va Nomi */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-emerald-950/90 to-slate-900 border border-emerald-500/40 rounded-xl">
-            <span className="text-sm">🏎️</span>
-            <span className="text-xs sm:text-sm font-black tracking-tight text-white font-mono">
-              TYPING <span className="text-emerald-400">GROUPS</span>
-            </span>
+          {/* Dumaloq Yakka Logo (To'rtburchak emas, yakka o'zi) */}
+          <div
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full p-0.5 bg-gradient-to-tr from-cyan-400 via-blue-500 to-emerald-400 shadow-[0_0_16px_rgba(6,182,212,0.5)] shrink-0 flex items-center justify-center hover:scale-105 transition-transform"
+            title="Type Groups"
+          >
+            <img
+              src="/type-groups-logo.png"
+              alt="Type Groups Logo"
+              className="w-full h-full object-cover rounded-full"
+            />
           </div>
 
           {/* Rejim: Yakka Poyga */}
@@ -630,22 +634,22 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
 
         {/* 3... 2... 1... START! Overlay */}
         {countdown !== null && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs z-30 rounded-2xl flex flex-col items-center justify-center animate-fade-in pointer-events-none">
+          <div className="absolute inset-0 bg-black/65 backdrop-blur-xs z-30 rounded-2xl flex flex-col items-center justify-center animate-backdrop-fade pointer-events-none">
             {/* Chiroqlar (Traffic Light) */}
             <div className="flex items-center gap-3 mb-2 p-2 bg-slate-950/90 border border-slate-800 rounded-full shadow-2xl">
-              <span className={`w-5 h-5 rounded-full transition-all duration-200 ${
-                countdown === 3 ? 'bg-rose-500 shadow-[0_0_15px_#f43f5e] scale-125' : 'bg-rose-950/40 border border-rose-900/60'
+              <span className={`w-5 h-5 rounded-full transition-all duration-300 ${
+                countdown === 3 ? 'bg-rose-500 shadow-[0_0_20px_#f43f5e] scale-125' : 'bg-rose-950/40 border border-rose-900/60'
               }`} />
-              <span className={`w-5 h-5 rounded-full transition-all duration-200 ${
-                countdown === 2 ? 'bg-amber-400 shadow-[0_0_15px_#fbbf24] scale-125' : 'bg-amber-950/40 border border-amber-900/60'
+              <span className={`w-5 h-5 rounded-full transition-all duration-300 ${
+                countdown === 2 ? 'bg-amber-400 shadow-[0_0_20px_#fbbf24] scale-125' : 'bg-amber-950/40 border border-amber-900/60'
               }`} />
-              <span className={`w-5 h-5 rounded-full transition-all duration-200 ${
-                countdown <= 1 ? 'bg-emerald-400 shadow-[0_0_15px_#34d399] scale-125' : 'bg-emerald-950/40 border border-emerald-900/60'
+              <span className={`w-5 h-5 rounded-full transition-all duration-300 ${
+                countdown <= 1 ? 'bg-emerald-400 shadow-[0_0_20px_#34d399] scale-125' : 'bg-emerald-950/40 border border-emerald-900/60'
               }`} />
             </div>
 
-            {/* Raqam yoki GO! */}
-            <div className="text-5xl sm:text-7xl font-black font-mono tracking-wider drop-shadow-[0_0_25px_rgba(52,211,153,0.8)] text-white scale-110 animate-bounce">
+            {/* Raqam yoki GO! (Portlash animatsiyasi) */}
+            <div key={countdown} className="text-5xl sm:text-7xl font-black font-mono tracking-wider drop-shadow-[0_0_25px_rgba(52,211,153,0.8)] text-white animate-countdown-pop">
               {countdown === 0 ? (
                 <span className="text-emerald-400">GO! 🏁</span>
               ) : (
@@ -655,7 +659,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
               )}
             </div>
 
-            <p className="text-[11px] sm:text-xs font-mono font-bold text-slate-300 mt-2 tracking-widest uppercase bg-slate-900/90 px-3 py-0.5 rounded-md border border-slate-700">
+            <p className="text-[11px] sm:text-xs font-mono font-bold text-slate-300 mt-2 tracking-widest uppercase bg-slate-900/90 px-3 py-0.5 rounded-md border border-slate-700 animate-pulse">
               {countdown === 0 ? 'POYGA BOSHLANDI!' : 'TAYYOR BOʻLING...'}
             </p>
           </div>
@@ -687,12 +691,12 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
 
       {/* 4. POYGA BOSHLANISHDAN OLDIN KO'RSATILADIGAN QISQA VA ANIQ YO'RIQNOMA MODALI */}
       {showInstructionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-md bg-[#0b1222] border-2 border-emerald-500/50 rounded-3xl p-5 sm:p-6 shadow-[0_0_50px_rgba(16,185,129,0.25)] text-slate-100 flex flex-col gap-3.5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
+          <div className="relative w-full max-w-md bg-[#0b1222] border-2 border-emerald-500/50 rounded-3xl p-5 sm:p-6 shadow-[0_0_50px_rgba(16,185,129,0.35)] text-slate-100 flex flex-col gap-3.5 animate-modal-pop">
             {/* Modal Sarlavhasi */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
               <div className="flex items-center gap-2.5">
-                <span className="p-2 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-xl">
+                <span className="p-2 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-xl animate-bounce">
                   🏁
                 </span>
                 <div>
@@ -818,7 +822,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
             <button
               type="button"
               onClick={handleAcknowledgeInstructions}
-              className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-slate-950 font-black text-sm uppercase tracking-wider rounded-xl shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-all transform active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+              className="interactive-btn shimmer-gleam w-full py-3 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-slate-950 font-black text-sm uppercase tracking-wider rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all transform active:scale-95 cursor-pointer flex items-center justify-center gap-2"
             >
               <span>Tushunarli! Poygani Boshlash (3-2-1)</span>
               <span className="text-base">🚀</span>
