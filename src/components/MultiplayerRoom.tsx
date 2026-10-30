@@ -6,8 +6,8 @@ import { HighwayRaceTrack, HighwayRacer } from './HighwayRaceTrack';
 import { WordsTypingArena } from './WordsTypingArena';
 import { RaceResultsModal } from './RaceResultsModal';
 import { FinishCelebrationOverlay } from './FinishCelebrationOverlay';
-import { RaceStats, DifficultyLevel } from '../types';
-import { Play, LogOut, Copy, Check, Users, Trash2, AlertCircle, RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
+import { RaceStats } from '../types';
+import { Play, LogOut, Copy, Check, Users, Trash2, AlertCircle, RotateCcw } from 'lucide-react';
 import { sounds } from '../utils/soundEffects';
 import { sortRacersByRank } from '../utils/raceRanking';
 import { generate5000Words } from '../data/words';
@@ -39,66 +39,9 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
   const [roomClosed, setRoomClosed] = useState(false);
   const [isResettingRound, setIsResettingRound] = useState(false);
 
-  // Butun ekran rejimi holati
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
-    try {
-      return !!document.fullscreenElement;
-    } catch {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    const handleFsChange = () => {
-      try {
-        setIsFullscreen(!!document.fullscreenElement);
-      } catch {
-        // ignore
-      }
-    };
-    document.addEventListener('fullscreenchange', handleFsChange);
-    return () => document.removeEventListener('fullscreenchange', handleFsChange);
-  }, []);
-
-  const toggleFullscreen = async () => {
-    try {
-      if (!document.fullscreenElement) {
-        if (document.documentElement.requestFullscreen) {
-          await document.documentElement.requestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        }
-      }
-    } catch (err) {
-      console.warn("Fullscreen switch error:", err);
-    }
-  };
-
   const lastUpdateRef = useRef<number>(0);
   const playedCountdownRef = useRef<number | null>(null);
   const lastRoundRef = useRef<number>(1);
-
-  // Xonada barcha a'zolar chiqib ketsa, 1 daqiqadan (60s) so'ng avtomatik o'chirish
-  useEffect(() => {
-    let emptyTimer: number | null = null;
-    if (roomData && participants.length === 0) {
-      emptyTimer = window.setTimeout(async () => {
-        try {
-          const partsSnap = await getDocs(collection(db, 'rooms', roomId, 'participants'));
-          if (partsSnap.empty) {
-            await deleteRoomCompletely(roomId);
-          }
-        } catch {
-          // ignore
-        }
-      }, 60000);
-    }
-    return () => {
-      if (emptyTimer) clearTimeout(emptyTimer);
-    };
-  }, [roomId, roomData, participants.length]);
 
   // 1. Xona holatini kuzatish
   useEffect(() => {
@@ -223,48 +166,10 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
     }
   }, [roomData?.status, countdown]);
 
-  const myBrakeTimerRef = useRef<number | null>(null);
-
   // Foydalanuvchi yozayotgan paytda progressni bazaga yuborish
   const handleProgressUpdate = React.useCallback(async (progress: number, wpm: number, accuracy: number, totalChars: number, errors: number) => {
-    // 1. O'yinchi mashinasini darhol silliq yangilash (tarmoq kechikishisiz)
-    setParticipants((prev) => {
-      let isBackward = false;
-      const updated = prev.map((p) => {
-        if (!p.isUser) return p;
-        if (progress < p.progress) {
-          isBackward = true;
-        }
-        return {
-          ...p,
-          progress,
-          currentWpm: wpm,
-          accuracy,
-          finished: progress >= 100,
-          isBraking: isBackward || p.isBraking
-        };
-      });
-
-      if (isBackward) {
-        if (myBrakeTimerRef.current) clearTimeout(myBrakeTimerRef.current);
-        myBrakeTimerRef.current = window.setTimeout(() => {
-          setParticipants((cur) => cur.map((r) => (r.isUser ? { ...r, isBraking: false } : r)));
-        }, 650);
-      }
-
-      const sortedByRank = sortRacersByRank(updated);
-      const rankMap = new Map();
-      sortedByRank.forEach((r, idx) => {
-        rankMap.set(r.id, idx + 1);
-      });
-      return updated.map((r) => ({
-        ...r,
-        rank: rankMap.get(r.id) || 1
-      }));
-    });
-
     const now = Date.now();
-    if (progress < 100 && now - lastUpdateRef.current < 180) {
+    if (progress < 100 && now - lastUpdateRef.current < 200) {
       return;
     }
     lastUpdateRef.current = now;
@@ -599,28 +504,8 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
           )}
         </div>
 
-        {/* O'ng qism: Host amallari, Butun ekran va TUGATISH / CHIQISH */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Butun ekran rejimi tugmasi */}
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-emerald-300 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
-            title={isFullscreen ? "Butun ekrandan chiqish" : "Butun ekranga oʻtish (Toʻliq ekran)"}
-          >
-            {isFullscreen ? (
-              <>
-                <Minimize2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden sm:inline">Kichraytirish</span>
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden sm:inline">Butun ekran</span>
-              </>
-            )}
-          </button>
-
+        {/* O'ng qism: Host amallari va TUGATISH / CHIQISH */}
+        <div className="flex items-center gap-2 shrink-0">
           {/* Yaratuvchi uchun: Birinchi poygani boshlash */}
           {isCreator && !isGameUnderway && (
             <button

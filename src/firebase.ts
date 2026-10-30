@@ -7,11 +7,12 @@ setLogLevel('error');
 
 const app = initializeApp(firebaseConfig);
 
-// Use experimentalForceLongPolling to prevent WebSocket timeout and ensure robust connectivity
+// Use experimentalAutoDetectLongPolling for ultra low latency WebSockets streaming,
+// with graceful fallback only if streaming is unavailable
 export const db = initializeFirestore(
   app,
   {
-    experimentalForceLongPolling: true,
+    experimentalAutoDetectLongPolling: true,
   },
   firebaseConfig.firestoreDatabaseId
 );

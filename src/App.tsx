@@ -64,12 +64,8 @@ export default function App() {
       // ignore
     }
 
-    // Firestore bazasini to'lib ketishdan saqlash va 1 daqiqalik bo'sh xonalarni avtomatik o'chirish
+    // Firestore bazasini to'lib ketishdan saqlash uchun eskirgan xonalarni tozalash
     cleanStaleRooms().catch(() => {});
-    const cleanupInterval = setInterval(() => {
-      cleanStaleRooms().catch(() => {});
-    }, 25000);
-    return () => clearInterval(cleanupInterval);
   }, []);
 
   // Guruh multiplayer modali holati ('join' | 'create' | null)
