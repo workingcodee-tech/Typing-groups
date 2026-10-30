@@ -178,9 +178,8 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
       timerRef.current = null;
     }
 
-    const duration = startTime
-      ? Math.max(0.1, (Date.now() - startTime) / 1000)
-      : Math.max(0.5, finalDuration);
+    const effectiveStart = startTimeMs || startTime || (Date.now() - finalDuration * 1000);
+    const duration = Math.max(0.1, (Date.now() - effectiveStart) / 1000);
     const minutes = duration / 60;
     const totalChars = finalCorrectChars + totalIncorrectChars;
 
@@ -198,26 +197,33 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
       correctChars: finalCorrectChars,
       incorrectChars: totalIncorrectChars,
       totalChars,
-      timeSeconds: Number(duration.toFixed(1)),
+      timeSeconds: Number(duration.toFixed(2)),
       distanceMeters: distance,
       wpmHistory: wpmHistory.length > 0 ? wpmHistory : [finalWpm],
       consistency,
       keystrokes: totalKeystrokes,
       errorsByChar: {},
-      userRank: 1,
-      totalRacers: 1
+      userRank: userRank || 1,
+      totalRacers: totalRacers || 1
     };
 
     onProgressUpdateRef.current(100, finalWpm, accuracy, totalChars, totalIncorrectChars, distance);
     onFinishRef.current(finalStats);
-  }, [startTime, totalIncorrectChars, distance, wpmHistory, totalKeystrokes]);
+  }, [startTime, startTimeMs, totalIncorrectChars, distance, wpmHistory, totalKeystrokes, userRank, totalRacers]);
+
+  // startTimeMs yangilanganda avtomatik qayta tayyorlanish
+  useEffect(() => {
+    if (startTimeMs) {
+      handleReset();
+    }
+  }, [startTimeMs, handleReset]);
 
   // Taymer hisobi: Sekundomer 0:00.0 dan yuqoriga qarab sanaydi (har 100ms da yangilanadi - 0.1s aniqlikda va CPU ni tejamkor qiladi)
   const lastRecordedSecRef = useRef<number>(-1);
 
   useEffect(() => {
     if (!isFinished && isGameActive && !countdownActive) {
-      const activeStart = startTime || Date.now();
+      const activeStart = startTime || startTimeMs || Date.now();
       if (!startTime) {
         setStartTime(activeStart);
       }
@@ -243,7 +249,7 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
         clearInterval(timerRef.current);
       }
     };
-  }, [startTime, isFinished, isGameActive, countdownActive, totalCorrectChars]);
+  }, [startTime, startTimeMs, isFinished, isGameActive, countdownActive, totalCorrectChars]);
 
   // Single-line Gorizontal silliq siljish (Aktiv so'zni ekran kengligiga mos chapdan ushlab turadi)
   useEffect(() => {

@@ -31,8 +31,8 @@ export const FinishCelebrationOverlay: React.FC<FinishCelebrationOverlayProps> =
   const [animatedChars, setAnimatedChars] = useState(0);
 
   const sortedRacers = sortRacersByRank(participants);
-
-  const userRank = stats.userRank || (sortedRacers.findIndex((p) => p.isUser) + 1);
+  const userIndex = sortedRacers.findIndex((p) => p.isUser);
+  const userRank = userIndex !== -1 ? userIndex + 1 : (stats.userRank || 1);
   const isWinner = userRank === 1;
 
   // Ko'p bosqichli chiroyli konfetti va feyerverk animatsiyasi

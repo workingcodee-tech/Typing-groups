@@ -41,9 +41,9 @@ export const RaceResultsModal: React.FC<RaceResultsModalProps> = ({
   }, []);
 
   const sortedRacers = sortRacersByRank(participants);
-
-  const userRank = stats.userRank || (sortedRacers.findIndex((p) => p.isUser) + 1);
-  const totalRacers = stats.totalRacers || sortedRacers.length;
+  const userIndex = sortedRacers.findIndex((p) => p.isUser);
+  const userRank = userIndex !== -1 ? userIndex + 1 : (stats.userRank || 1);
+  const totalRacers = participants.length > 0 ? participants.length : (stats.totalRacers || sortedRacers.length);
 
   const [copied, setCopied] = React.useState(false);
   const handleShare = () => {

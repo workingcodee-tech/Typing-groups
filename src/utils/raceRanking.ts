@@ -36,24 +36,33 @@ export function sortRacersByRank<T extends RankableRacer>(racers: T[]): T[] {
 
     // 2. Ikkisi ham marraga yetgan bo'lsa:
     if (aFin && bFin) {
-      if (a.finishRank && b.finishRank && a.finishRank !== b.finishRank) {
-        return a.finishRank - b.finishRank;
-      }
-      const aTime = a.finishTime ?? a.finishTimeSeconds ?? (a.finishedAt ? a.finishedAt / 1000 : 999999);
-      const bTime = b.finishTime ?? b.finishTimeSeconds ?? (b.finishedAt ? b.finishedAt / 1000 : 999999);
-      if (Math.abs(aTime - bTime) > 0.05) {
+      // a) Eng kam sarflangan vaqt bo'yicha (soniyalarda, masalan: 18.42s vs 19.10s)
+      const aTime = typeof a.finishTimeSeconds === 'number' ? a.finishTimeSeconds : (typeof a.finishTime === 'number' ? a.finishTime : 999999);
+      const bTime = typeof b.finishTimeSeconds === 'number' ? b.finishTimeSeconds : (typeof b.finishTime === 'number' ? b.finishTime : 999999);
+      if (Math.abs(aTime - bTime) >= 0.01) {
         return aTime - bTime;
       }
-      if (a.finishedAt && b.finishedAt && a.finishedAt !== b.finishedAt) {
-        return a.finishedAt - b.finishedAt;
+
+      // b) Millisekundlik marra vaqti (kim avvalroq marraga yetgan bo'lsa)
+      const aMs = a.finishedAtMs ?? a.finishedAt ?? 9999999999999;
+      const bMs = b.finishedAtMs ?? b.finishedAt ?? 9999999999999;
+      if (aMs !== bMs) {
+        return aMs - bMs;
       }
-      return (b.currentWpm || 0) - (a.currentWpm || 0);
+
+      // c) Agar vaqtlar mutlaqo teng bo'lsa: WPM yuqori bo'lgani oldinda
+      if ((b.currentWpm || 0) !== (a.currentWpm || 0)) {
+        return (b.currentWpm || 0) - (a.currentWpm || 0);
+      }
+
+      // d) Durangni oldini olish uchun (ID bo'yicha yagona barqaror tartib)
+      return (a.id || '').localeCompare(b.id || '');
     }
 
     // 3. Ikkisi ham poygada davom etmoqda:
     const aProg = a.progress || 0;
     const bProg = b.progress || 0;
-    if (Math.abs(bProg - aProg) > 0.01) {
+    if (Math.abs(bProg - aProg) >= 0.05) {
       return bProg - aProg;
     }
 

@@ -117,34 +117,11 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
       const data = snapshot.data();
       setRoomData(data);
 
-      // Server tomonidan boshqariladigan sinxron 3-2-1 START (barcha a'zolarda bir vaqtda ishlaydi)
-      if (data.status === 'starting') {
-        // O'yin boshlanishi bilan barcha qurilmalarda butun ekran rejimiga o'tish
-        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-          try {
-            document.documentElement.requestFullscreen().catch(() => {});
-          } catch {}
-        }
-        if (typeof data.countdown === 'number') {
-          setCountdown(data.countdown);
-          if (data.countdown !== playedCountdownRef.current) {
-            playedCountdownRef.current = data.countdown;
-            sounds.playCountdown(data.countdown);
-          }
-        }
-      } else if (data.status === 'racing') {
-        if (data.countdown === 0) {
-          setCountdown(0);
-          if (playedCountdownRef.current !== 0) {
-            playedCountdownRef.current = 0;
-            sounds.playCountdown(0);
-          }
-        } else {
-          setCountdown(null);
-        }
-      } else {
-        setCountdown(null);
-        playedCountdownRef.current = null;
+      // Butun ekran rejimiga o'tish (agar o'yin boshlanayotgan bo'lsa)
+      if (data.status === 'starting' && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+        try {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } catch {}
       }
 
       // Agar yangi bosqich boshlangan bo'lsa (round o'zgardi):
@@ -224,16 +201,57 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
     };
   }, [roomId, myId]);
 
-  // 3. Favqulodda xavfsizlik nazoratchisi (Watchdog):
-  // Agar tarmoqda signal kechiksa ham har bir o'yinchida hisoblagich avtomatik 1.2 soniyada pasayib poyga boshlanadi
+  // 3. Millisekundlik Sinxron Countdown (barcha o'yinchilar bir xil lahzada boshlaydi)
   useEffect(() => {
-    if (roomData?.status === 'starting' && countdown !== null && countdown > 0) {
-      const fallbackTimer = window.setTimeout(() => {
-        setCountdown((prev) => (prev !== null && prev > 1 ? prev - 1 : 0));
-      }, 1300);
-      return () => clearTimeout(fallbackTimer);
+    if (!roomData?.startTimeMs || (roomData?.status !== 'starting' && roomData?.status !== 'racing')) {
+      setCountdown(null);
+      playedCountdownRef.current = null;
+      return;
     }
-  }, [roomData?.status, countdown]);
+
+    const updateCountdown = () => {
+      const now = Date.now();
+      const diffMs = roomData.startTimeMs - now;
+
+      if (diffMs > 2000) {
+        setCountdown(3);
+        if (playedCountdownRef.current !== 3) {
+          playedCountdownRef.current = 3;
+          sounds.playCountdown(3);
+        }
+      } else if (diffMs > 1000) {
+        setCountdown(2);
+        if (playedCountdownRef.current !== 2) {
+          playedCountdownRef.current = 2;
+          sounds.playCountdown(2);
+        }
+      } else if (diffMs > 0) {
+        setCountdown(1);
+        if (playedCountdownRef.current !== 1) {
+          playedCountdownRef.current = 1;
+          sounds.playCountdown(1);
+        }
+      } else if (diffMs > -1200) {
+        // 0 bo'lganda (GO! 🏁): Barcha qurilmalarda ayni shu millisekundda poyga start oladi
+        setCountdown(0);
+        if (playedCountdownRef.current !== 0) {
+          playedCountdownRef.current = 0;
+          sounds.playCountdown(0);
+        }
+        // Agar men xona egasi bo'lsam, statusni 'racing' ga o'tkazish
+        if (isCreator && roomData.status === 'starting') {
+          updateDoc(doc(db, 'rooms', roomId), { status: 'racing' }).catch(() => {});
+        }
+      } else {
+        // 1.2 soniyadan so'ng banner yashiriladi
+        setCountdown(null);
+      }
+    };
+
+    updateCountdown();
+    const interval = window.setInterval(updateCountdown, 40);
+    return () => clearInterval(interval);
+  }, [roomData?.startTimeMs, roomData?.status, isCreator, roomId]);
 
   const myBrakeTimerRef = useRef<number | null>(null);
 
@@ -300,15 +318,33 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
   // Marraga yetib kelganda: Aniq o'rinni hisoblash va natijalarni saqlash
   const handleFinish = React.useCallback(async (stats: RaceStats) => {
     const finishTimestamp = Date.now();
-    const finishTimeSeconds = Number(stats.timeSeconds.toFixed(1));
+    const syncStart = roomData?.startTimeMs || (finishTimestamp - stats.timeSeconds * 1000);
+    const exactDurationSeconds = Number(Math.max(0.1, (finishTimestamp - syncStart) / 1000).toFixed(2));
 
-    // Mendan oldin marraga yetganlar soni
-    const alreadyFinishedRacers = participants.filter(p => !p.isUser && p.finished);
-    const myRealRank = alreadyFinishedRacers.length + 1;
+    // Aniq o'rinni hisoblash: joriy foydalanuvchining marra natijasi bilan barcha ishtirokchilarni saralash
+    const updatedParticipants = participants.map(p => {
+      if (p.id === myId) {
+        return {
+          ...p,
+          finished: true,
+          finishTimeSeconds: exactDurationSeconds,
+          finishTime: exactDurationSeconds,
+          finishedAtMs: finishTimestamp,
+          finishedAt: finishTimestamp,
+          currentWpm: stats.wpm,
+          accuracy: stats.accuracy
+        };
+      }
+      return p;
+    });
+
+    const strictlySorted = sortRacersByRank(updatedParticipants);
+    const myRealRank = strictlySorted.findIndex(p => p.id === myId) + 1;
     const currentDistance = roomData?.targetDistance || 100;
 
     setRaceStats({
       ...stats,
+      timeSeconds: exactDurationSeconds,
       distanceMeters: currentDistance,
       userRank: myRealRank,
       totalRacers: participants.length
@@ -325,16 +361,16 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
         totalChars: stats.totalChars,
         errors: stats.incorrectChars,
         finished: true,
-        finishTime: finishTimeSeconds,
-        finishTimeSeconds: finishTimeSeconds,
+        finishTime: exactDurationSeconds,
+        finishTimeSeconds: exactDurationSeconds,
+        finishedAtMs: finishTimestamp,
         finishedAt: finishTimestamp,
-        finishRank: myRealRank,
         updatedAt: new Date().toISOString()
       });
     } catch (e) {
       console.warn("Marrani saqlashda xatolik:", e);
     }
-  }, [roomId, myId, participants, roomData?.targetDistance]);
+  }, [roomId, myId, participants, roomData?.targetDistance, roomData?.startTimeMs]);
 
   // Guruh egasi poygani boshlashdan oldin sozlamalar (Masofa va Til) modalini ochishi
   const openStartModal = (isNextRound: boolean = false) => {
@@ -410,49 +446,19 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
       const roomRef = doc(db, 'rooms', roomId);
       const nextRoundNumber = isNextRoundMode ? (roomData?.round || 1) + 1 : (roomData?.round || 1);
 
-      // 1-qadam: 3 soniya (barcha a'zolarda bir vaqtda 3 paydo bo'ladi)
+      // Barcha guruhdoshlar uchun bitta aniq sinxron start vaqti (3.5 soniyadan keyin boshlanadi)
+      const synchronousStartMs = Date.now() + 3500;
+
       await updateDoc(roomRef, {
         targetDistance: modalDistance,
         language: modalLanguage,
         words: newWords,
         round: nextRoundNumber,
         status: 'starting',
-        countdown: 3,
+        startTimeMs: synchronousStartMs,
         startedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
-
-      // 2-qadam: 1 soniyadan so'ng 2 raqami
-      window.setTimeout(async () => {
-        try {
-          await updateDoc(roomRef, { countdown: 2 });
-        } catch {}
-      }, 1000);
-
-      // 3-qadam: 2 soniyadan so'ng 1 raqami
-      window.setTimeout(async () => {
-        try {
-          await updateDoc(roomRef, { countdown: 1 });
-        } catch {}
-      }, 2000);
-
-      // 4-qadam: 3 soniyadan so'ng START (GO! 🏁) - barcha qurilmalarda bir xil paytda boshlanadi
-      window.setTimeout(async () => {
-        try {
-          await updateDoc(roomRef, {
-            status: 'racing',
-            countdown: 0,
-            racingStartedAt: Date.now()
-          });
-        } catch {}
-      }, 3000);
-
-      // 5-qadam: 3.8 soniyadan so'ng GO bannerini yopish
-      window.setTimeout(async () => {
-        try {
-          await updateDoc(roomRef, { countdown: null });
-        } catch {}
-      }, 3800);
     } catch (e) {
       console.warn("Poygani boshlashda xatolik:", e);
     }
