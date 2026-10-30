@@ -35,16 +35,16 @@ export const CarShowcase: React.FC<CarShowcaseProps> = ({ car, playerName }) => 
       <div className="relative w-full max-w-lg sm:max-w-xl h-44 sm:h-56 flex items-center justify-center">
         {/* Neon Zamin Platformasi (Showroom Floor Underglow) */}
         <div
-          className="absolute bottom-2 left-1/2 -translate-x-1/2 w-4/5 h-10 rounded-[100%] blur-xl opacity-60 pointer-events-none transition-all duration-700 animate-underglow-breathe"
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 w-4/5 h-10 rounded-[100%] blur-xl opacity-60 pointer-events-none transition-all duration-500"
           style={{ backgroundColor: car.glowColor }}
         />
         <div
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 w-3/4 h-3 rounded-[100%] border pointer-events-none opacity-40 shadow-2xl transition-all duration-700"
-          style={{ borderColor: car.glowColor, boxShadow: `0 0 35px ${car.glowColor}` }}
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 w-3/4 h-3 rounded-[100%] border pointer-events-none opacity-40 shadow-2xl"
+          style={{ borderColor: car.glowColor, boxShadow: `0 0 30px ${car.glowColor}` }}
         />
 
-        {/* Vektor Superkar SVG (Katta o'lchamda, silliq suzuvchi animatsiya bilan) */}
-        <div className="relative w-72 sm:w-96 md:w-[460px] h-32 sm:h-44 md:h-48 flex items-center justify-center filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)] animate-float-gentle transition-all duration-500">
+        {/* Vektor Superkar SVG (Katta o'lchamda, 100% tiniq) */}
+        <div className="relative w-72 sm:w-96 md:w-[460px] h-32 sm:h-44 md:h-48 flex items-center justify-center filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.95)]">
           <svg
             viewBox="0 0 230 75"
             className="w-full h-full overflow-visible"

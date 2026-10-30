@@ -7,10 +7,10 @@ import { WordsTypingArena } from './WordsTypingArena';
 import { RaceResultsModal } from './RaceResultsModal';
 import { FinishCelebrationOverlay } from './FinishCelebrationOverlay';
 import { RaceStats, DifficultyLevel } from '../types';
-import { Play, LogOut, Copy, Check, Users, Trash2, AlertCircle, RotateCcw, Maximize2, Minimize2, Globe, Settings, X } from 'lucide-react';
+import { Play, LogOut, Copy, Check, Users, Trash2, AlertCircle, RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
 import { sounds } from '../utils/soundEffects';
 import { sortRacersByRank } from '../utils/raceRanking';
-import { generate5000Words, GameLanguage } from '../data/words';
+import { generate5000Words } from '../data/words';
 
 interface MultiplayerRoomProps {
   roomId: string;
@@ -38,12 +38,6 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
   const [showDetailedModal, setShowDetailedModal] = useState(false);
   const [roomClosed, setRoomClosed] = useState(false);
   const [isResettingRound, setIsResettingRound] = useState(false);
-
-  // Poygani boshlashdan oldin sozlamalar (Masofa va Til) modali holati
-  const [isStartModalOpen, setIsStartModalOpen] = useState<boolean>(false);
-  const [modalDistance, setModalDistance] = useState<number>(100);
-  const [modalLanguage, setModalLanguage] = useState<GameLanguage>('uz');
-  const [isNextRoundMode, setIsNextRoundMode] = useState<boolean>(false);
 
   // Butun ekran rejimi holati
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
@@ -119,12 +113,6 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
 
       // Server tomonidan boshqariladigan sinxron 3-2-1 START (barcha a'zolarda bir vaqtda ishlaydi)
       if (data.status === 'starting') {
-        // O'yin boshlanishi bilan barcha qurilmalarda butun ekran rejimiga o'tish
-        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-          try {
-            document.documentElement.requestFullscreen().catch(() => {});
-          } catch {}
-        }
         if (typeof data.countdown === 'number') {
           setCountdown(data.countdown);
           if (data.countdown !== playedCountdownRef.current) {
@@ -336,21 +324,12 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
     }
   }, [roomId, myId, participants, roomData?.targetDistance]);
 
-  // Guruh egasi poygani boshlashdan oldin sozlamalar (Masofa va Til) modalini ochishi
-  const openStartModal = (isNextRound: boolean = false) => {
-    setIsNextRoundMode(isNextRound);
-    setModalDistance(roomData?.targetDistance || 100);
-    setModalLanguage((roomData?.language as GameLanguage) || 'uz');
-    setIsStartModalOpen(true);
-  };
-
   // Guruh egasi (host) poyga boshlanishidan oldin masofani belgilashi
   const handleSetTargetDistance = async (newDistance: number) => {
     if (!isCreator || newDistance < 20) return;
     try {
-      const curLang = (roomData?.language as GameLanguage) || 'uz';
       const wordsCount = Math.max(150, Math.ceil(newDistance * 1.5));
-      const newWords = generate5000Words(wordsCount, curLang);
+      const newWords = generate5000Words(wordsCount);
       const roomRef = doc(db, 'rooms', roomId);
       await updateDoc(roomRef, {
         targetDistance: newDistance,
@@ -361,65 +340,17 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
     }
   };
 
-  // Sozlamalar tasdiqlangach poygani boshlash (va darhol butun ekranga o'tish)
-  const handleConfirmAndStartRace = async () => {
+  // 1-bosqich: Birinchi poygani boshlash (Faqat xona yaratuvchisi boshlaydi va barcha qurilmalar bir vaqtda start oladi)
+  const handleStartRace = async () => {
     if (!isCreator) return;
-    setIsStartModalOpen(false);
-
-    // 1. O'yin boshlash zahoti butun ekran rejimiga o'tilsin
-    try {
-      if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-      }
-    } catch (err) {
-      console.warn("Butun ekranga oʻtishda ogohlantirish:", err);
-    }
-
-    const wordsCount = Math.max(150, Math.ceil(modalDistance * 1.5));
-    const newWords = generate5000Words(wordsCount, modalLanguage);
-
-    if (isNextRoundMode) {
-      setIsResettingRound(true);
-      try {
-        const participantsRef = collection(db, 'rooms', roomId, 'participants');
-        const snap = await getDocs(participantsRef);
-        const resetPromises = snap.docs.map((docSnap) =>
-          updateDoc(docSnap.ref, {
-            progress: 0,
-            currentWpm: 0,
-            accuracy: 100,
-            totalChars: 0,
-            errors: 0,
-            finished: false,
-            finishTime: null,
-            finishTimeSeconds: null,
-            finishedAt: null,
-            finishRank: null,
-            updatedAt: new Date().toISOString()
-          })
-        );
-        await Promise.all(resetPromises);
-      } catch (e) {
-        console.warn("Ishtirokchilarni tozalashda xatolik:", e);
-      } finally {
-        setIsResettingRound(false);
-      }
-    }
-
     try {
       const roomRef = doc(db, 'rooms', roomId);
-      const nextRoundNumber = isNextRoundMode ? (roomData?.round || 1) + 1 : (roomData?.round || 1);
 
       // 1-qadam: 3 soniya (barcha a'zolarda bir vaqtda 3 paydo bo'ladi)
       await updateDoc(roomRef, {
-        targetDistance: modalDistance,
-        language: modalLanguage,
-        words: newWords,
-        round: nextRoundNumber,
         status: 'starting',
         countdown: 3,
-        startedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        startedAt: new Date().toISOString()
       });
 
       // 2-qadam: 1 soniyadan so'ng 2 raqami
@@ -455,6 +386,86 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
       }, 3800);
     } catch (e) {
       console.warn("Poygani boshlashda xatolik:", e);
+    }
+  };
+
+  // 2-bosqich: KEYINGI BOSQICH / YANGI O'YIN (Faqat xona yaratuvchisi bosadi va barcha guruh a'zolari bir vaqtda boshlaydi)
+  const handleNextRound = async () => {
+    if (!isCreator || isResettingRound) return;
+    setIsResettingRound(true);
+
+    try {
+      const targetMeters = roomData?.targetDistance || 100;
+      const targetWordsCount = Math.max(150, Math.ceil(targetMeters * 1.5));
+      const newWords = generate5000Words(targetWordsCount);
+      const nextRoundNumber = (roomData?.round || 1) + 1;
+
+      // Barcha ishtirokchilarning natijalarini tozalash (reset qilish)
+      const participantsRef = collection(db, 'rooms', roomId, 'participants');
+      const snap = await getDocs(participantsRef);
+      const resetPromises = snap.docs.map((docSnap) =>
+        updateDoc(docSnap.ref, {
+          progress: 0,
+          currentWpm: 0,
+          accuracy: 100,
+          totalChars: 0,
+          errors: 0,
+          finished: false,
+          finishTime: null,
+          finishTimeSeconds: null,
+          finishedAt: null,
+          finishRank: null,
+          updatedAt: new Date().toISOString()
+        })
+      );
+      await Promise.all(resetPromises);
+
+      // Xonaga yangi so'zlarni yuklash va sinxron start berish
+      const roomRef = doc(db, 'rooms', roomId);
+      await updateDoc(roomRef, {
+        words: newWords,
+        round: nextRoundNumber,
+        status: 'starting',
+        countdown: 3,
+        startedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      // 1000ms dan so'ng: 2
+      window.setTimeout(async () => {
+        try {
+          await updateDoc(roomRef, { countdown: 2 });
+        } catch {}
+      }, 1000);
+
+      // 2000ms dan so'ng: 1
+      window.setTimeout(async () => {
+        try {
+          await updateDoc(roomRef, { countdown: 1 });
+        } catch {}
+      }, 2000);
+
+      // 3000ms dan so'ng: START!
+      window.setTimeout(async () => {
+        try {
+          await updateDoc(roomRef, {
+            status: 'racing',
+            countdown: 0,
+            racingStartedAt: Date.now()
+          });
+        } catch {}
+      }, 3000);
+
+      // 3800ms dan so'ng banner yopiladi
+      window.setTimeout(async () => {
+        try {
+          await updateDoc(roomRef, { countdown: null });
+        } catch {}
+      }, 3800);
+    } catch (e) {
+      console.warn("Keyingi bosqichga o'tishda xatolik:", e);
+    } finally {
+      setIsResettingRound(false);
     }
   };
 
@@ -581,10 +592,6 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
             🏁 {roomData?.targetDistance || 100}m
           </div>
 
-          <div className="px-2 py-1 bg-blue-950/80 border border-blue-500/50 rounded-xl font-bold text-blue-300">
-            {roomData?.language === 'en' ? '🇬🇧 EN' : '🇺🇿 UZ'}
-          </div>
-
           {roomData?.round && roomData.round > 1 && (
             <div className="px-2 py-1 bg-cyan-950 border border-cyan-500/50 rounded-xl font-bold text-cyan-300">
               {roomData.round}-bosqich
@@ -614,10 +621,10 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
             )}
           </button>
 
-          {/* Yaratuvchi uchun: Birinchi poygani boshlash (Start modali ochiladi) */}
+          {/* Yaratuvchi uchun: Birinchi poygani boshlash */}
           {isCreator && !isGameUnderway && (
             <button
-              onClick={() => openStartModal(false)}
+              onClick={handleStartRace}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-black text-xs rounded-xl shadow-md cursor-pointer animate-pulse active:scale-95"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
@@ -625,10 +632,10 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
             </button>
           )}
 
-          {/* Yaratuvchi uchun: Poyga tugaganda keyingi bosqichni boshlash (Start modali ochiladi) */}
+          {/* Yaratuvchi uchun: Poyga tugaganda keyingi bosqichni boshlash */}
           {isCreator && isGameUnderway && hasAnyoneFinished && (
             <button
-              onClick={() => openStartModal(true)}
+              onClick={handleNextRound}
               disabled={isResettingRound}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-xs rounded-xl shadow-md cursor-pointer animate-bounce active:scale-95"
             >
@@ -672,22 +679,22 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
 
         {/* 3... 2... 1... START! Overlay (Millisekund aniqlikda sinxron) */}
         {countdown !== null && (
-          <div className="absolute inset-0 bg-black/75 backdrop-blur-xs z-30 rounded-2xl flex flex-col items-center justify-center animate-backdrop-fade pointer-events-none">
+          <div className="absolute inset-0 bg-black/75 backdrop-blur-xs z-30 rounded-2xl flex flex-col items-center justify-center animate-fade-in pointer-events-none">
             {/* Chiroqlar (Svetofor) */}
             <div className="flex items-center gap-3 mb-2 p-2 bg-slate-950/90 border border-slate-800 rounded-full shadow-2xl">
-              <span className={`w-5 h-5 rounded-full transition-all duration-300 ${
-                countdown === 3 ? 'bg-rose-500 shadow-[0_0_20px_#f43f5e] scale-125' : 'bg-rose-950/40 border border-rose-900/60'
+              <span className={`w-5 h-5 rounded-full transition-all duration-200 ${
+                countdown === 3 ? 'bg-rose-500 shadow-[0_0_15px_#f43f5e] scale-125' : 'bg-rose-950/40 border border-rose-900/60'
               }`} />
-              <span className={`w-5 h-5 rounded-full transition-all duration-300 ${
-                countdown === 2 ? 'bg-amber-400 shadow-[0_0_20px_#fbbf24] scale-125' : 'bg-amber-950/40 border border-amber-900/60'
+              <span className={`w-5 h-5 rounded-full transition-all duration-200 ${
+                countdown === 2 ? 'bg-amber-400 shadow-[0_0_15px_#fbbf24] scale-125' : 'bg-amber-950/40 border border-amber-900/60'
               }`} />
-              <span className={`w-5 h-5 rounded-full transition-all duration-300 ${
-                countdown <= 1 ? 'bg-emerald-400 shadow-[0_0_20px_#34d399] scale-125' : 'bg-emerald-950/40 border border-emerald-900/60'
+              <span className={`w-5 h-5 rounded-full transition-all duration-200 ${
+                countdown <= 1 ? 'bg-emerald-400 shadow-[0_0_15px_#34d399] scale-125' : 'bg-emerald-950/40 border border-emerald-900/60'
               }`} />
             </div>
 
-            {/* Raqam yoki GO! (Portlash animatsiyasi) */}
-            <div key={countdown} className="text-5xl sm:text-7xl font-black font-mono tracking-wider drop-shadow-[0_0_25px_rgba(52,211,153,0.8)] text-white animate-countdown-pop">
+            {/* Raqam yoki GO! */}
+            <div className="text-5xl sm:text-7xl font-black font-mono tracking-wider drop-shadow-[0_0_25px_rgba(52,211,153,0.8)] text-white scale-110 animate-bounce">
               {countdown === 0 ? (
                 <span className="text-emerald-400">GO! 🏁</span>
               ) : (
@@ -697,7 +704,7 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
               )}
             </div>
 
-            <p className="text-[11px] sm:text-xs font-mono font-bold text-slate-300 mt-2 tracking-widest uppercase bg-slate-900/90 px-3 py-0.5 rounded-md border border-slate-700 animate-pulse">
+            <p className="text-[11px] sm:text-xs font-mono font-bold text-slate-300 mt-2 tracking-widest uppercase bg-slate-900/90 px-3 py-0.5 rounded-md border border-slate-700">
               {countdown === 0 ? 'POYGA BOSHLANDI!' : 'BARCHA OʻYINCHILAR BIR VAQTDA TAYYORLANSIN...'}
             </p>
           </div>
@@ -713,7 +720,6 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
             return (
               <WordsTypingArena
                 wordsList={wordsList}
-                language={(roomData?.language as GameLanguage) || 'uz'}
                 onProgressUpdate={handleProgressUpdate}
                 onFinish={handleFinish}
                 isGameActive={true}
@@ -742,12 +748,12 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
                       </h4>
                     </div>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      Trassa masofasi va tilini tanlang, soʻngra barcha uchun poygani boshlang:
+                      Barcha ishtirokchilar uchun trassa masofasini belgilang va poygani boshlang:
                     </p>
                   </div>
 
                   <button
-                    onClick={() => openStartModal(false)}
+                    onClick={handleStartRace}
                     className="px-4 py-2 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/30 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5 animate-pulse"
                   >
                     <Play className="w-4 h-4 fill-current" />
@@ -836,7 +842,7 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
           }))}
           isMultiplayer={true}
           isCreator={isCreator}
-          onNextRound={() => openStartModal(true)}
+          onNextRound={handleNextRound}
           onRestart={() => {
             setShowCelebration(false);
             setShowDetailedModal(false);
@@ -868,154 +874,15 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
           }))}
           isMultiplayer={true}
           isCreator={isCreator}
-          onNextRound={() => openStartModal(true)}
+          onNextRound={handleNextRound}
           onRestart={() => {
             setShowCelebration(false);
             setShowDetailedModal(false);
           }}
-          onNextQuote={() => openStartModal(true)}
+          onNextQuote={handleNextRound}
           onSaveScore={() => {}}
           hasSaved={true}
         />
-      )}
-
-      {/* 6. GURUH POYGASINI BOSHLASH VA SOZLAMALAR MODALI (Har safar start berilganda chiqadi) */}
-      {isStartModalOpen && isCreator && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
-          <div className="relative w-full max-w-md bg-[#0b1222] border-2 border-cyan-500/50 rounded-3xl p-5 sm:p-6 shadow-[0_0_50px_rgba(6,182,212,0.35)] text-slate-100 flex flex-col gap-4 animate-modal-pop">
-            {/* Modal Sarlavhasi */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 bg-cyan-500/20 border border-cyan-500/40 rounded-xl text-xl">
-                  ⚙️
-                </span>
-                <div>
-                  <h3 className="text-base font-black text-white font-mono tracking-tight">
-                    {isNextRoundMode ? 'Keyingi Bosqich Sozlamalari' : 'Poyga Sozlamalari & Boshlash'}
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Masofa va tilni tanlang, soʻngra start bering
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsStartModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-850 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* O'YIN TILI TANLASH (O'zbekcha / English) */}
-            <div className="p-3 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5 uppercase font-mono">
-                  <Globe className="w-3.5 h-3.5 text-cyan-400" />
-                  Oʻyin Tili (Barcha Oʻyinchilar Uchun):
-                </span>
-                <span className="text-[10px] font-mono text-cyan-400 font-bold">
-                  {modalLanguage === 'uz' ? '🇺🇿 Oʻzbek tili' : '🇬🇧 Ingliz tili'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setModalLanguage('uz')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                    modalLanguage === 'uz'
-                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/30 ring-1 ring-cyan-400'
-                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:text-white hover:border-slate-700'
-                  }`}
-                >
-                  <span className="text-sm">🇺🇿</span>
-                  <span>Oʻzbekcha (Lotin)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setModalLanguage('en')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                    modalLanguage === 'en'
-                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-black border-cyan-300 shadow-md shadow-cyan-500/30 ring-1 ring-cyan-400'
-                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:text-white hover:border-slate-700'
-                  }`}
-                >
-                  <span className="text-sm">🇬🇧</span>
-                  <span>English (Speed)</span>
-                </button>
-              </div>
-
-              <p className="text-[10px] text-slate-400 leading-tight">
-                {modalLanguage === 'uz'
-                  ? 'ℹ️ Oʻzbek tilida tutuq belgisi (\') va gʻ, oʻ harflari boʻlmagan qulay soʻzlar beriladi.'
-                  : 'ℹ️ Ingliz tilidagi mashhur va qulay poyga soʻzlari beriladi.'}
-              </p>
-            </div>
-
-            {/* MASOFA TANLASH (50m, 100m, 200m, 500m, 1000m, 1500m) */}
-            <div className="p-3 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider font-mono">
-                  🏁 Poyga Masofasi:
-                </span>
-                <span className="text-xs font-mono font-black text-cyan-300 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-500/40">
-                  {modalDistance} METR
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                {[50, 100, 200, 500, 1000, 1500].map((dist) => (
-                  <button
-                    key={dist}
-                    type="button"
-                    onClick={() => setModalDistance(dist)}
-                    className={`py-2 px-1 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer flex flex-col items-center justify-center ${
-                      modalDistance === dist
-                        ? 'bg-gradient-to-b from-cyan-500 to-blue-600 text-slate-950 border-cyan-300 font-black shadow-md'
-                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:text-white'
-                    }`}
-                  >
-                    <span>{dist}m</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Xona holati xulosasi */}
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-300 font-mono">
-              <span className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Ishtirokchilar:</span>
-                <strong className="text-white">{participants.length}/10</strong>
-              </span>
-              <span className="text-emerald-400 font-bold flex items-center gap-1">
-                <Maximize2 className="w-3.5 h-3.5" />
-                <span>Toʻliq ekran faollashadi</span>
-              </span>
-            </div>
-
-            {/* Boshlash tugmasi */}
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setIsStartModalOpen(false)}
-                className="flex-1 py-2.5 px-3 bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl cursor-pointer"
-              >
-                Bekor qilish
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmAndStartRace}
-                className="flex-[2] py-2.5 px-4 bg-gradient-to-r from-emerald-400 via-teal-400 to-green-500 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/30 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <Play className="w-4 h-4 fill-current" />
-                <span>Boshlash (3-2-1) 🚀</span>
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
