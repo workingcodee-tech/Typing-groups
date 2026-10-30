@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { User, Users, PlusCircle, X, ArrowRight, AlertCircle, Sparkles, Gauge, Flame, Globe } from 'lucide-react';
+import { User, Users, PlusCircle, X, ArrowRight, AlertCircle, Sparkles, Gauge, Flame } from 'lucide-react';
 import { CarSelector } from './CarSelector';
 import { DifficultyLevel } from '../types';
-import { GameLanguage } from '../data/words';
 
 export type ModeType = 'solo' | 'join' | 'create';
 
@@ -11,7 +10,7 @@ interface ModeModalProps {
   onClose: () => void;
   onStartSolo: (userName: string, carId: string, difficulty: DifficultyLevel, distance?: number) => void;
   onJoinGroup: (roomId: string, userName: string, carId: string) => void;
-  onCreateGroup: (groupName: string, userName: string, carId: string, targetDistance?: number, enterImmediately?: boolean, language?: GameLanguage) => void;
+  onCreateGroup: (groupName: string, userName: string, carId: string, targetDistance?: number) => void;
 }
 
 export const ModeModal: React.FC<ModeModalProps> = ({
@@ -34,7 +33,6 @@ export const ModeModal: React.FC<ModeModalProps> = ({
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
   const [groupName, setGroupName] = useState<string>('');
   const [targetDistance, setTargetDistance] = useState<number>(100);
-  const [language, setLanguage] = useState<GameLanguage>('uz');
   const [roomIdInput, setRoomIdInput] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
@@ -68,13 +66,13 @@ export const ModeModal: React.FC<ModeModalProps> = ({
         setErrorMsg('Iltimos, yangi guruh nomini kiriting!');
         return;
       }
-      onCreateGroup(groupName.trim(), userName.trim(), selectedCarId, targetDistance, true, language);
+      onCreateGroup(groupName.trim(), userName.trim(), selectedCarId, targetDistance);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-md animate-backdrop-fade">
-      <div className="relative w-full max-w-lg bg-[#090e1c] border-2 border-cyan-500/50 rounded-2xl shadow-[0_0_50px_rgba(6,182,212,0.35)] p-4 sm:p-5 text-slate-100 max-h-[90vh] flex flex-col justify-between overflow-hidden animate-modal-pop">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-lg bg-[#090e1c] border border-cyan-500/40 rounded-2xl shadow-2xl shadow-cyan-950/70 p-4 sm:p-5 text-slate-100 max-h-[90vh] flex flex-col justify-between overflow-hidden">
         {/* Yopish tugmasi */}
         <button
           onClick={onClose}
@@ -129,38 +127,6 @@ export const ModeModal: React.FC<ModeModalProps> = ({
                   required
                   className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:outline-none focus:border-cyan-400"
                 />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                  Oʻyin Tili:
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setLanguage('uz')}
-                    className={`py-1.5 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      language === 'uz'
-                        ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-sm'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <span>🇺🇿</span>
-                    <span>Oʻzbekcha (Lotin)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLanguage('en')}
-                    className={`py-1.5 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      language === 'en'
-                        ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-sm'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <span>🇬🇧</span>
-                    <span>English</span>
-                  </button>
-                </div>
               </div>
 
               <div>

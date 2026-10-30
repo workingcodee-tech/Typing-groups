@@ -11,11 +11,10 @@ export const RacingBackground: React.FC<{ children: React.ReactNode }> = ({ chil
       <div className="absolute inset-0 bg-gradient-to-b from-[#02060e] via-[#05101a] to-[#02050b] pointer-events-none" />
 
       {/* 2. Perspektiv Poyga Trassasi / Neon Speed Grid */}
-      <div className="absolute inset-0 opacity-30 pointer-events-none overflow-hidden">
-        {/* Yuqori gorizont nurlari (Floodlight cones with subtle breathing animation) */}
-        <div className="absolute -top-32 left-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none animate-neon-emerald" />
-        <div className="absolute -top-32 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none animate-neon-cyan" />
-        <div className="absolute bottom-1/3 left-1/2 -translate-x-1/2 w-[700px] h-48 bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent blur-2xl pointer-events-none animate-pulse" />
+      <div className="absolute inset-0 opacity-25 pointer-events-none overflow-hidden">
+        {/* Yuqori gorizont nurlari (Floodlight cones) */}
+        <div className="absolute -top-32 left-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-32 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Perspektiv yo'l chiziqlari (SVG Racing Highway Lines) */}
         <svg

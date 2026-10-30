@@ -101,8 +101,8 @@ export const HighwayRaceTrack: React.FC<HighwayRaceTrackProps> = ({
             return (
               <div
                 key={racer.id}
-                className={`relative flex-1 min-h-[52px] sm:min-h-[64px] flex items-center px-4 transition-all duration-300 ${
-                  racer.isUser ? 'bg-cyan-950/35 shadow-[inset_0_0_20px_rgba(6,182,212,0.15)]' : ''
+                className={`relative flex-1 min-h-[52px] sm:min-h-[64px] flex items-center px-4 transition-colors ${
+                  racer.isUser ? 'bg-cyan-950/25' : ''
                 }`}
               >
                 {/* Yo'lak raqami */}

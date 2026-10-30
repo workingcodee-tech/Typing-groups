@@ -1,15 +1,5 @@
 User-agent: *
 Allow: /
 
-# Googlebot va qidiruv botlari to'liq ruxsat
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Yandex
-Allow: /
-
-# Google Search Console uchun to'liq absolyut sitemap manzili
-Sitemap: https://typing-groups.vercel.app/sitemap.xml
+# Qidiruv tizimlari xaritasi (Sitemap)
+Sitemap: /sitemap.xml

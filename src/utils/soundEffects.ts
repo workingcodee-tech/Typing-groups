@@ -238,37 +238,7 @@ class SoundManager {
         osc.stop(now + 0.3);
       });
     } catch {
-      // ignore
-    }
-  }
-
-  public playEngineRev() {
-    try {
-      if (this.soundType === 'off' || this.volume <= 0) return;
-      this.initCtx();
-      if (!this.ctx) return;
-
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'sawtooth';
-      // Low rumble up to high rev
-      osc.frequency.setValueAtTime(65, now);
-      osc.frequency.exponentialRampToValueAtTime(260, now + 0.35);
-      osc.frequency.exponentialRampToValueAtTime(110, now + 0.7);
-
-      gain.gain.setValueAtTime(0.01, now);
-      gain.gain.linearRampToValueAtTime(this.volume * 0.45, now + 0.25);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.75);
-    } catch {
-      // ignore
+      // Ignore finish sound errors
     }
   }
 }

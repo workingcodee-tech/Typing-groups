@@ -1,15 +1,3 @@
-import bugattiImg from '../assets/images/bugatti_chiron_real_1793284955219.jpg';
-import ferrariImg from '../assets/images/ferrari_f8_real_1793284974192.jpg';
-import porscheImg from '../assets/images/porsche_911_real_1793284974447.jpg';
-import amgImg from '../assets/images/amg_gt_real_1793284975634.jpg';
-import bmwImg from '../assets/images/bmw_m4_real_1793284975300.jpg';
-import bmwFrontImg from '../assets/images/bmw_m4_real_front_1793285920083.jpg';
-import audiImg from '../assets/images/audi_r8_real_1793284992363.jpg';
-import lamboImg from '../assets/images/lambo_huracan_real_1793284993014.jpg';
-import mustangImg from '../assets/images/mustang_shelby_real_1793284994055.jpg';
-import stingerImg from '../assets/images/stinger_gt_real_1793284993019.jpg';
-import malibuImg from '../assets/images/malibu_turbo_real_1793285009320.jpg';
-
 export interface RacingCar {
   id: string;
   name: string;
@@ -23,9 +11,6 @@ export interface RacingCar {
   silhouetteType: 'bugatti' | 'ferrari' | 'porsche' | 'amg' | 'bmw' | 'mustang' | 'audi' | 'lambo' | 'sedan';
   shortLabel: string;
   powerHp: number;
-  realImageUrl: string;
-  frontImageUrl?: string;
-  flipFacing?: boolean;
 }
 
 export const FAMOUS_CARS: RacingCar[] = [
@@ -41,9 +26,7 @@ export const FAMOUS_CARS: RacingCar[] = [
     caliperColor: '#00d2ff',
     silhouetteType: 'bugatti',
     shortLabel: 'Chiron SS',
-    powerHp: 1600,
-    realImageUrl: bugattiImg,
-    flipFacing: true // rasmdagi burun chapda, poygada o'ngga qaratiladi
+    powerHp: 1600
   },
   {
     id: 'ferrari',
@@ -57,9 +40,7 @@ export const FAMOUS_CARS: RacingCar[] = [
     caliperColor: '#eab308',
     silhouetteType: 'ferrari',
     shortLabel: 'F8 Tributo',
-    powerHp: 720,
-    realImageUrl: ferrariImg,
-    flipFacing: false // rasmdagi burun o'ngda
+    powerHp: 720
   },
   {
     id: 'porsche',
@@ -73,9 +54,7 @@ export const FAMOUS_CARS: RacingCar[] = [
     caliperColor: '#eab308',
     silhouetteType: 'porsche',
     shortLabel: '911 Turbo',
-    powerHp: 650,
-    realImageUrl: porscheImg,
-    flipFacing: true
+    powerHp: 650
   },
   {
     id: 'mers',
@@ -89,9 +68,7 @@ export const FAMOUS_CARS: RacingCar[] = [
     caliperColor: '#f59e0b',
     silhouetteType: 'amg',
     shortLabel: 'AMG GT',
-    powerHp: 730,
-    realImageUrl: amgImg,
-    flipFacing: false
+    powerHp: 730
   },
   {
     id: 'bmw',
@@ -105,10 +82,7 @@ export const FAMOUS_CARS: RacingCar[] = [
     caliperColor: '#ef4444',
     silhouetteType: 'bmw',
     shortLabel: 'BMW M4',
-    powerHp: 510,
-    realImageUrl: bmwImg,
-    frontImageUrl: bmwFrontImg,
-    flipFacing: false
+    powerHp: 510
   },
   {
     id: 'audi',
@@ -122,9 +96,7 @@ export const FAMOUS_CARS: RacingCar[] = [
     caliperColor: '#ef4444',
     silhouetteType: 'audi',
     shortLabel: 'Audi R8',
-    powerHp: 620,
-    realImageUrl: audiImg,
-    flipFacing: true
+    powerHp: 620
   },
   {
     id: 'lamborghini',
@@ -138,9 +110,7 @@ export const FAMOUS_CARS: RacingCar[] = [
     caliperColor: '#22c55e',
     silhouetteType: 'lambo',
     shortLabel: 'Huracán',
-    powerHp: 640,
-    realImageUrl: lamboImg,
-    flipFacing: true
+    powerHp: 640
   },
   {
     id: 'mustang',
@@ -154,9 +124,7 @@ export const FAMOUS_CARS: RacingCar[] = [
     caliperColor: '#ef4444',
     silhouetteType: 'mustang',
     shortLabel: 'Mustang GT',
-    powerHp: 760,
-    realImageUrl: mustangImg,
-    flipFacing: true
+    powerHp: 760
   },
   {
     id: 'kia',
@@ -170,9 +138,7 @@ export const FAMOUS_CARS: RacingCar[] = [
     caliperColor: '#dc2626',
     silhouetteType: 'sedan',
     shortLabel: 'Stinger GT',
-    powerHp: 368,
-    realImageUrl: stingerImg,
-    flipFacing: true
+    powerHp: 368
   },
   {
     id: 'malibu',
@@ -186,8 +152,6 @@ export const FAMOUS_CARS: RacingCar[] = [
     caliperColor: '#e2e8f0',
     silhouetteType: 'sedan',
     shortLabel: 'Malibu',
-    powerHp: 250,
-    realImageUrl: malibuImg,
-    flipFacing: true
+    powerHp: 250
   }
 ];
