@@ -7,7 +7,7 @@ interface AnalogSpeedometerProps {
   className?: string;
 }
 
-export const AnalogSpeedometer: React.FC<AnalogSpeedometerProps> = ({
+export const AnalogSpeedometer = React.memo<AnalogSpeedometerProps>(({
   wpm,
   maxWpm = 160,
   size,
@@ -185,4 +185,4 @@ export const AnalogSpeedometer: React.FC<AnalogSpeedometerProps> = ({
       </svg>
     </div>
   );
-};
+});

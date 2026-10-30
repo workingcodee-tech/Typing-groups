@@ -39,7 +39,7 @@ export const getTargetCharsForDistance = (meters: number): number => {
   return Math.max(25, Math.round(meters * 0.9));
 };
 
-export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
+export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
   wordsList,
   onProgressUpdate,
   onFinish,
@@ -211,7 +211,9 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
     onFinishRef.current(finalStats);
   }, [startTime, totalIncorrectChars, distance, wpmHistory, totalKeystrokes]);
 
-  // Taymer hisobi: Sekundomer 0:00.0 dan yuqoriga qarab sanaydi
+  // Taymer hisobi: Sekundomer 0:00.0 dan yuqoriga qarab sanaydi (har 100ms da yangilanadi - 0.1s aniqlikda va CPU ni tejamkor qiladi)
+  const lastRecordedSecRef = useRef<number>(-1);
+
   useEffect(() => {
     if (!isFinished && isGameActive && !countdownActive) {
       const activeStart = startTime || Date.now();
@@ -224,10 +226,15 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
         const seconds = Math.max(0, (now - activeStart) / 1000);
         setElapsedTime(seconds);
 
-        const minutes = Math.max(0.01, seconds / 60);
-        const liveWpm = Math.round((totalCorrectChars / 5) / minutes);
-        setWpmHistory((prev) => [...prev, liveWpm].slice(-30));
-      }, 50);
+        // Tarixni har 50ms da emas, faqat har 1 soniyada 1 marta yozib boramiz (xotirani tejaydi va qotishni oldini oladi)
+        const currentSec = Math.floor(seconds);
+        if (currentSec !== lastRecordedSecRef.current) {
+          lastRecordedSecRef.current = currentSec;
+          const minutes = Math.max(0.01, seconds / 60);
+          const liveWpm = Math.round((totalCorrectChars / 5) / minutes);
+          setWpmHistory((prev) => [...prev, liveWpm].slice(-30));
+        }
+      }, 100);
     }
 
     return () => {
@@ -721,37 +728,26 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
               }
 
               if (isPast) {
-                const pastInput = pastHistory?.input || '';
                 const pastMatched = pastHistory?.isCorrect ?? true;
 
                 return (
                   <span
                     key={actualIndex}
                     ref={(el) => { wordRefs.current[actualIndex] = el; }}
-                    className={`relative inline-flex items-center mr-3 select-none py-1 ${
-                      !pastMatched ? 'border-b border-rose-500/60' : ''
+                    className={`relative inline-flex items-center mr-3 select-none py-1 transition-colors ${
+                      pastMatched
+                        ? 'text-slate-300'
+                        : 'text-rose-400 font-medium border-b border-rose-500/60'
                     }`}
                   >
-                    {word.split('').map((char, cIdx) => {
-                      const typedChar = pastInput[cIdx];
-                      const isCorrect = typedChar === char;
-                      return (
-                        <span
-                          key={cIdx}
-                          className={
-                            typedChar !== undefined
-                              ? isCorrect
-                                ? 'text-slate-300'
-                                : 'text-rose-400 font-medium'
-                              : 'text-rose-400/60'
-                          }
-                        >
-                          {char}
-                        </span>
-                      );
-                    })}
+                    {word}
                   </span>
                 );
+              }
+
+              // Uzoq kelajakdagi (ekranga umuman sig'maydigan) so'zlarni DOM ga yuklamaymiz (xotirani 90% tejaydi)
+              if (actualIndex > currentWordIndex + 35) {
+                return null;
               }
 
               return (
@@ -795,4 +791,4 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
       </div>
     </div>
   );
-};
+});

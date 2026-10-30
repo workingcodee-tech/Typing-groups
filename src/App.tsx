@@ -4,7 +4,7 @@ import { HomeModeSelector } from './components/HomeModeSelector';
 import { SoloRaceArena } from './components/SoloRaceArena';
 import { MultiplayerRoom } from './components/MultiplayerRoom';
 import { ModeModal, ModeType } from './components/ModeModal';
-import { generate5000Words } from './data/words';
+import { generate5000Words, GameLanguage } from './data/words';
 import { SwitchSoundType, sounds } from './utils/soundEffects';
 import { DifficultyLevel } from './types';
 import { doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
@@ -64,8 +64,12 @@ export default function App() {
       // ignore
     }
 
-    // Firestore bazasini to'lib ketishdan saqlash uchun eskirgan xonalarni tozalash
+    // Firestore bazasini to'lib ketishdan saqlash va 1 daqiqalik bo'sh xonalarni avtomatik o'chirish
     cleanStaleRooms().catch(() => {});
+    const cleanupInterval = setInterval(() => {
+      cleanStaleRooms().catch(() => {});
+    }, 25000);
+    return () => clearInterval(cleanupInterval);
   }, []);
 
   // Guruh multiplayer modali holati ('join' | 'create' | null)
@@ -212,7 +216,8 @@ export default function App() {
     userName: string,
     carId: string,
     targetDistance: number = 100,
-    enterImmediately: boolean = true
+    enterImmediately: boolean = true,
+    language: GameLanguage = 'uz'
   ): Promise<string | null> => {
     setGlobalError(null);
 
@@ -220,7 +225,7 @@ export default function App() {
       const random6DigitId = String(Math.floor(100000 + Math.random() * 900000));
       // So'zlar yetishmay qolmasligi uchun kamida 150-250 ta so'z (3-4 barobar ko'p) yaratamiz
       const wordsCount = Math.max(150, Math.ceil(targetDistance * 1.5));
-      const roomWords = generate5000Words(wordsCount);
+      const roomWords = generate5000Words(wordsCount, language);
       const myId = currentUser.id;
 
       // Xona hujjatini yaratish
@@ -236,6 +241,7 @@ export default function App() {
         createdAtMs: nowMs,
         updatedAtMs: nowMs,
         words: roomWords,
+        language: language,
         countdown: null,
         targetDistance: targetDistance || 100,
         round: 1

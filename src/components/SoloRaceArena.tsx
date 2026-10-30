@@ -217,7 +217,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           rank: rankMap.get(r.id) || 1
         }));
       });
-    }, 200);
+    }, 250);
 
     return () => {
       if (botIntervalRef.current) {
@@ -226,7 +226,9 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     };
   }, [isRaceActive, raceStats, selectedDistance, difficulty]);
 
-  // Foydalanuvchi klaviaturada yozganda progress yangilanishi
+  // Foydalanuvchi klaviaturada yozganda progress yangilanishi (Klaviatura qotmasligi uchun har 100ms da trassani yangilaydi)
+  const lastUserProgressUpdateRef = useRef<number>(0);
+
   const handleProgressUpdate = useCallback((
     userProgress: number,
     wpm: number,
@@ -235,6 +237,14 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     _errors: number,
     _currentMeters: number
   ) => {
+    const now = Date.now();
+    const isFinished = userProgress >= 100;
+    // Har bir harfda emas, har 100ms da bir yoki marraga yetganda trassa va reytingni yangilaymiz
+    if (!isFinished && now - lastUserProgressUpdateRef.current < 100) {
+      return;
+    }
+    lastUserProgressUpdateRef.current = now;
+
     setRacers((prev) => {
       const updated = prev.map((racer) => {
         if (!racer.isUser) return racer;

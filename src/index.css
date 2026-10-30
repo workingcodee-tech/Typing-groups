@@ -53,3 +53,329 @@
 .typing-caret {
   animation: caretBlink 0.9s ease-in-out infinite;
 }
+
+/* 🏎️ Realistik Poyga Mashinasi Animatsiyalari (G'ildirak aylanishi, podveska, nitro va tormoz) */
+@keyframes carWheelSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-wheel-spin {
+  animation: carWheelSpin 0.32s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.animate-wheel-spin-fast {
+  animation: carWheelSpin 0.16s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes carSuspensionBounce {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-1.2px);
+  }
+}
+
+.animate-car-drive {
+  animation: carSuspensionBounce 0.18s ease-in-out infinite;
+}
+
+@keyframes exhaustFlameFlicker {
+  0%, 100% {
+    transform: scaleX(1) scaleY(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scaleX(1.4) scaleY(1.2);
+    opacity: 1;
+  }
+}
+
+.animate-flame-flicker {
+  animation: exhaustFlameFlicker 0.12s ease-in-out infinite;
+  transform-origin: right center;
+}
+
+@keyframes brakeSkidSmoke {
+  0% {
+    opacity: 0.85;
+    transform: translate(0, 0) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-18px, -5px) scale(1.6);
+  }
+}
+
+.animate-skid-smoke {
+  animation: brakeSkidSmoke 0.5s ease-out forwards;
+}
+
+@keyframes brakeJerk {
+  0%, 100% {
+    transform: translateX(0px);
+  }
+  30% {
+    transform: translateX(-3px);
+  }
+  70% {
+    transform: translateX(1px);
+  }
+}
+
+.animate-brake-jerk {
+  animation: brakeJerk 0.4s ease-out;
+}
+
+/* ========================================================= */
+/* 🌟 JOZIBALI VA SILIQ SAYT ANIMATSIYALARI                  */
+/* ========================================================= */
+
+/* 1. Modal oynalar va dialoglarning elastik-silliq ochilishi */
+@keyframes modalPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(14px);
+    filter: blur(4px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.015) translateY(-2px);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(12px);
+  }
+}
+
+.animate-modal-pop {
+  animation: modalPopIn 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-backdrop-fade {
+  animation: backdropFadeIn 0.28s ease-out forwards;
+}
+
+/* 2. Neon va rangli nurlanish pulsatsiyalari */
+@keyframes neonCyanPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.35), 0 0 35px rgba(6, 182, 212, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(6, 182, 212, 0.65), 0 0 50px rgba(6, 182, 212, 0.3);
+  }
+}
+
+@keyframes neonEmeraldPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.35), 0 0 35px rgba(16, 185, 129, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(16, 185, 129, 0.65), 0 0 50px rgba(16, 185, 129, 0.3);
+  }
+}
+
+@keyframes neonAmberPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.35), 0 0 35px rgba(245, 158, 11, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(245, 158, 11, 0.65), 0 0 50px rgba(245, 158, 11, 0.3);
+  }
+}
+
+.animate-neon-cyan {
+  animation: neonCyanPulse 2.4s ease-in-out infinite;
+}
+
+.animate-neon-emerald {
+  animation: neonEmeraldPulse 2.4s ease-in-out infinite;
+}
+
+.animate-neon-amber {
+  animation: neonAmberPulse 2.4s ease-in-out infinite;
+}
+
+/* 3. Yorqin Shimmer (Yaltirash effekti) */
+@keyframes shimmerGleam {
+  0% {
+    transform: translateX(-150%) skewX(-15deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-15deg);
+  }
+}
+
+.shimmer-gleam {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-gleam::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 100%
+  );
+  animation: shimmerGleam 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+/* 4. Avtomobil ko'rgazmasi va Garaj suzuvchi (float) harakati */
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-float-gentle {
+  animation: floatGentle 3.2s ease-in-out infinite;
+}
+
+@keyframes underglowBreathe {
+  0%, 100% {
+    opacity: 0.5;
+    transform: translateX(-50%) scale(0.98);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateX(-50%) scale(1.05);
+  }
+}
+
+.animate-underglow-breathe {
+  animation: underglowBreathe 2.4s ease-in-out infinite;
+}
+
+/* 5. 3-2-1 Hisoblagich va GO! portlashi */
+@keyframes countdownExplosion {
+  0% {
+    transform: scale(0.3) rotate(-5deg);
+    opacity: 0;
+    filter: blur(6px);
+  }
+  50% {
+    transform: scale(1.22) rotate(2deg);
+    opacity: 1;
+    filter: blur(0px);
+  }
+  75% {
+    transform: scale(0.96) rotate(0deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-countdown-pop {
+  animation: countdownExplosion 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 6. Yozish vaqtida to'g'ri/xato harf reaksiyasi */
+@keyframes charPopFeedback {
+  0% {
+    transform: scale(0.85);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes charShakeError {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-3px);
+  }
+  40%, 80% {
+    transform: translateX(3px);
+  }
+}
+
+.animate-char-pop {
+  animation: charPopFeedback 0.16s ease-out;
+}
+
+.animate-char-shake {
+  animation: charShakeError 0.24s ease-in-out;
+}
+
+/* 7. Tugma va kartochkalarning interaktiv mikromatsiyalari */
+.interactive-card {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.interactive-card:hover {
+  transform: translateY(-3px) scale(1.01);
+}
+
+.interactive-card:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.interactive-btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.interactive-btn:hover {
+  transform: translateY(-1.5px);
+}
+
+.interactive-btn:active {
+  transform: translateY(0.5px) scale(0.96);
+}
+
+/* 8. Sekin ochilish va siljish utility klassi */
+@keyframes fadeInUpSmooth {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUpSmooth 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

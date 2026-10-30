@@ -271,24 +271,37 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
   return (
     <div className="relative w-full min-h-[calc(100vh-4.5rem)] flex flex-col justify-between p-3 sm:p-6 select-none animate-fade-in overflow-hidden">
       {/* ========================================================= */}
-      {/* 1. YUQORI BOSHQARUV QATORI                                */}
-      {/* ========================================================= */}
+      {/* 1. YUQORI BOSHQARUV QATORI */}
       <div className="w-full flex items-center justify-between gap-2 z-20">
-        {/* CHAP YUQORI BURCHAK: Guruh Yaratish Tugmasi */}
-        <button
-          type="button"
-          onClick={() => {
-            setCreatedRoomId(null);
-            setShowCreateModal(true);
-          }}
-          className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-cyan-950/90 to-blue-950/90 hover:from-cyan-900 hover:to-blue-900 border border-cyan-500/50 hover:border-cyan-400 rounded-xl text-cyan-200 hover:text-white text-xs sm:text-sm font-bold shadow-lg shadow-cyan-950/50 hover:shadow-cyan-500/20 transition-all cursor-pointer group active:scale-95"
-          title="Yangi guruh ochish va do'stlar bilan poygalash"
-        >
-          <div className="w-6 h-6 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 group-hover:scale-110 transition-transform">
-            <PlusCircle className="w-3.5 h-3.5" />
+        {/* CHAP YUQORI BURCHAK: Dumaloq Yakka Logo va Guruh Yaratish */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Dumaloq Yakka Logo (To'rtburchak emas, yakka o'zi) */}
+          <div
+            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full p-0.5 bg-gradient-to-tr from-cyan-400 via-blue-500 to-emerald-400 shadow-[0_0_18px_rgba(6,182,212,0.5)] shrink-0 flex items-center justify-center hover:scale-105 transition-transform cursor-pointer"
+            title="Type Groups"
+          >
+            <img
+              src="/type-groups-logo.png"
+              alt="Type Groups Logo"
+              className="w-full h-full object-cover rounded-full"
+            />
           </div>
-          <span>Guruh Yaratish</span>
-        </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCreatedRoomId(null);
+              setShowCreateModal(true);
+            }}
+            className="interactive-btn shimmer-gleam flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-cyan-950/90 to-blue-950/90 hover:from-cyan-900 hover:to-blue-900 border border-cyan-500/50 hover:border-cyan-400 rounded-xl text-cyan-200 hover:text-white text-xs sm:text-sm font-bold shadow-lg shadow-cyan-950/50 hover:shadow-cyan-500/20 transition-all cursor-pointer group active:scale-95"
+            title="Yangi guruh ochish va do'stlar bilan poygalash"
+          >
+            <div className="w-6 h-6 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 group-hover:scale-110 transition-transform">
+              <PlusCircle className="w-3.5 h-3.5" />
+            </div>
+            <span>Guruh Yaratish</span>
+          </button>
+        </div>
 
         {/* O'RTA: Ovoz almashtirish va ism tahrirlash */}
         <div className="flex items-center gap-2">
@@ -299,7 +312,7 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
               setEditNameInput(name);
               setShowEditNameModal(true);
             }}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer"
+            className="interactive-btn hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white rounded-xl text-xs font-mono font-bold transition-all cursor-pointer"
             title="Ismni o'zgartirish"
           >
             <span>👤</span>
@@ -311,7 +324,7 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
           <button
             type="button"
             onClick={onToggleSound}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white rounded-xl text-xs font-mono font-bold cursor-pointer transition-colors"
+            className="interactive-btn flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 text-slate-300 hover:text-white rounded-xl text-xs font-mono font-bold cursor-pointer transition-all"
             title="Klaviatura ovozini almashtirish"
           >
             {soundType === 'off' ? (
@@ -332,7 +345,7 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
         <button
           type="button"
           onClick={() => setShowCarModal(true)}
-          className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-amber-950/90 to-orange-950/90 hover:from-amber-900 hover:to-orange-900 border border-amber-500/50 hover:border-amber-400 rounded-xl text-amber-200 hover:text-white text-xs sm:text-sm font-bold shadow-lg shadow-amber-950/50 hover:shadow-amber-500/20 transition-all cursor-pointer group active:scale-95"
+          className="interactive-btn shimmer-gleam flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-amber-950/90 to-orange-950/90 hover:from-amber-900 hover:to-orange-900 border border-amber-500/50 hover:border-amber-400 rounded-xl text-amber-200 hover:text-white text-xs sm:text-sm font-bold shadow-lg shadow-amber-950/50 hover:shadow-amber-500/20 transition-all cursor-pointer group active:scale-95"
           title="Mashinalar garajidan yangi model tanlash"
         >
           <div className="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 group-hover:scale-110 transition-transform">
@@ -360,7 +373,7 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
             setErrorMsg('');
             setShowJoinModal(true);
           }}
-          className="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 bg-slate-900/95 hover:bg-slate-850 border-2 border-cyan-500/60 hover:border-cyan-400 text-cyan-300 hover:text-white text-xs sm:text-sm font-black rounded-2xl shadow-xl shadow-cyan-950/60 hover:shadow-cyan-500/30 transition-all cursor-pointer active:scale-95 group"
+          className="interactive-card flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-3.5 bg-slate-900/95 hover:bg-slate-850 border-2 border-cyan-500/60 hover:border-cyan-400 text-cyan-300 hover:text-white text-xs sm:text-sm font-black rounded-2xl shadow-xl shadow-cyan-950/60 hover:shadow-cyan-500/30 transition-all cursor-pointer active:scale-95 group"
           title="Xona ID PIN kodi orqali guruhga ulanish"
         >
           <div className="w-7 h-7 rounded-xl bg-cyan-950/90 border border-cyan-500/50 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
@@ -376,7 +389,7 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
         <button
           type="button"
           onClick={() => setShowPlaySoloModal(true)}
-          className="flex items-center gap-2.5 px-6 sm:px-8 py-3 sm:py-3.5 bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-600 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-emerald-500/40 hover:shadow-emerald-500/60 transition-all cursor-pointer active:scale-95 group"
+          className="interactive-card shimmer-gleam animate-neon-emerald flex items-center gap-2.5 px-6 sm:px-8 py-3 sm:py-3.5 bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-600 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-emerald-500/40 hover:shadow-emerald-500/60 transition-all cursor-pointer active:scale-95 group"
           title="Yakka poyga sozlamalarini tanlash va o'yinni boshlash"
         >
           <div className="w-8 h-8 rounded-xl bg-slate-950/20 border border-black/20 flex items-center justify-center text-slate-950 group-hover:scale-110 transition-transform">
@@ -394,10 +407,14 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
       {/* MODAL 1: SAYTGA ILK BOR TASHRIF BUYURGANDA ISM SO'RASH     */}
       {/* ========================================================= */}
       {showFirstTimeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-md bg-[#0a0f1d] border-2 border-cyan-500/60 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-cyan-950/80 border border-cyan-400/50 flex items-center justify-center text-3xl mx-auto shadow-lg shadow-cyan-500/20">
-              🏎️
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
+          <div className="relative w-full max-w-md bg-[#0a0f1d] border-2 border-cyan-500/60 rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_rgba(6,182,212,0.35)] text-center space-y-4 animate-modal-pop">
+            <div className="w-18 h-18 rounded-full p-1 bg-gradient-to-tr from-cyan-400 via-blue-500 to-emerald-400 shadow-[0_0_30px_rgba(6,182,212,0.6)] flex items-center justify-center mx-auto animate-bounce overflow-hidden">
+              <img
+                src="/type-groups-logo.png"
+                alt="Type Groups Logo"
+                className="w-full h-full object-cover rounded-full"
+              />
             </div>
             <div>
               <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
@@ -428,7 +445,7 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
               <button
                 type="submit"
                 disabled={!tempFirstName.trim()}
-                className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-cyan-500/30 transition-all cursor-pointer"
+                className="w-full py-3.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 disabled:opacity-50 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-cyan-500/30 transition-all cursor-pointer active:scale-95"
               >
                 Saqlash va Boshlash 🚀
               </button>
@@ -441,8 +458,8 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
       {/* MODAL 2: "O'YNASH" (YAKKA POYGA SOZLAMALARI: DARAJA & MASOFA) */}
       {/* ========================================================= */}
       {showPlaySoloModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-lg bg-[#0a0f1d] border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
+          <div className="relative w-full max-w-lg bg-[#0a0f1d] border-2 border-emerald-500/50 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(16,185,129,0.3)] space-y-5 animate-modal-pop">
             {/* Yopish */}
             <button
               onClick={() => setShowPlaySoloModal(false)}
@@ -538,11 +555,10 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 3: "GURUHGA QO'SHILISH" (6 RAQAMLI PIN KOD)          */}
-      {/* ========================================================= */}
+      {/* MODAL 3: "GURUHGA QO'SHILISH" (6 RAQAMLI PIN KOD) */}
       {showJoinModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-md bg-[#0a0f1d] border border-cyan-500/50 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
+          <div className="relative w-full max-w-md bg-[#0a0f1d] border-2 border-cyan-500/50 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(6,182,212,0.3)] space-y-4 animate-modal-pop">
             <button
               onClick={() => setShowJoinModal(false)}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
@@ -730,12 +746,10 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
         </div>
       )}
 
-      {/* ========================================================= */}
-      {/* MODAL 4: "GURUH YARATISH" (NOMI, MASOFA VA KATTA ID)       */}
-      {/* ========================================================= */}
+      {/* MODAL 4: "GURUH YARATISH" (NOMI, MASOFA VA KATTA ID) */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-lg bg-[#0a0f1d] border border-cyan-500/50 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
+          <div className="relative w-full max-w-lg bg-[#0a0f1d] border-2 border-cyan-500/50 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(6,182,212,0.3)] space-y-5 animate-modal-pop">
             <button
               onClick={() => {
                 setShowCreateModal(false);
@@ -961,11 +975,10 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 5: MASHINANI ALMASHTIRISH (GARAGE)                   */}
-      {/* ========================================================= */}
+      {/* MODAL 5: MASHINANI ALMASHTIRISH (GARAGE) */}
       {showCarModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-2xl bg-[#0a0f1d] border border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
+          <div className="relative w-full max-w-2xl bg-[#0a0f1d] border-2 border-amber-500/50 rounded-3xl p-6 shadow-[0_0_50px_rgba(245,158,11,0.25)] space-y-4 animate-modal-pop">
             <button
               onClick={() => setShowCarModal(false)}
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
@@ -1030,12 +1043,10 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
         </div>
       )}
 
-      {/* ========================================================= */}
-      {/* MODAL 6: ISMNI TAHRIRLASH MODALI                           */}
-      {/* ========================================================= */}
+      {/* MODAL 6: ISMNI TAHRIRLASH MODALI */}
       {showEditNameModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-sm bg-[#0a0f1d] border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
+          <div className="relative w-full max-w-sm bg-[#0a0f1d] border-2 border-slate-700/80 rounded-2xl p-5 shadow-2xl space-y-4 animate-modal-pop">
             <button
               onClick={() => setShowEditNameModal(false)}
               className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"

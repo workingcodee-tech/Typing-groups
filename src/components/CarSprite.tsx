@@ -9,7 +9,7 @@ interface CarSpriteProps {
   rank?: number;
 }
 
-export const CarSprite: React.FC<CarSpriteProps> = ({
+export const CarSprite = React.memo<CarSpriteProps>(({
   carId,
   playerName,
   currentWpm,
@@ -413,4 +413,4 @@ export const CarSprite: React.FC<CarSpriteProps> = ({
       </div>
     </div>
   );
-};
+});

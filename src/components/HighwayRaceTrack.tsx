@@ -23,7 +23,7 @@ interface HighwayRaceTrackProps {
   roomId?: string;
 }
 
-export const HighwayRaceTrack: React.FC<HighwayRaceTrackProps> = ({
+export const HighwayRaceTrack = React.memo<HighwayRaceTrackProps>(({
   racers
 }) => {
   return (
@@ -138,4 +138,4 @@ export const HighwayRaceTrack: React.FC<HighwayRaceTrackProps> = ({
       <div className="h-2 w-full bg-[#0d121a] border-t border-slate-800" />
     </div>
   );
-};
+});
