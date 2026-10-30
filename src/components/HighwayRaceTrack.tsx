@@ -15,6 +15,7 @@ export interface HighwayRacer {
   finishRank?: number;
   isUser: boolean;
   rank?: number;
+  isBraking?: boolean;
 }
 
 interface HighwayRaceTrackProps {

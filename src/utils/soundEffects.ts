@@ -244,6 +244,41 @@ class SoundManager {
       // Ignore finish sound errors
     }
   }
+
+  public playEngineRev() {
+    try {
+      if (this.soundType === 'off' || this.volume <= 0) return;
+      this.initCtx();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(65, now);
+      osc.frequency.exponentialRampToValueAtTime(320, now + 0.35);
+      osc.frequency.exponentialRampToValueAtTime(110, now + 0.75);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(400, now);
+      filter.frequency.exponentialRampToValueAtTime(1600, now + 0.35);
+      filter.frequency.exponentialRampToValueAtTime(600, now + 0.75);
+
+      gain.gain.setValueAtTime(this.volume * 0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.8);
+    } catch {
+      // Ignore
+    }
+  }
 }
 
 export const sounds = new SoundManager();

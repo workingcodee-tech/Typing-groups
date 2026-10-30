@@ -17,6 +17,7 @@ interface WordsTypingArenaProps {
   startTimeMs?: number | null; // Sinxron poyga start vaqti (millisoniyalarda)
   userRank?: number; // Foydalanuvchining joriy jonli o'rni (1-o'rin, 2-o'rin...)
   totalRacers?: number; // Jami poygachilar soni
+  language?: any;
 }
 
 interface WordHistoryItem {

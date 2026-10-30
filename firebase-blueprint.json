@@ -54,6 +54,10 @@
     "/rooms/{roomId}/participants/{participantId}": {
       "schema": "Participant",
       "description": "Xona ishtirokchilari"
+    },
+    "/test/{testId}": {
+      "schema": "Room",
+      "description": "Firestore aloqasini tekshirish uchun test hujjati"
     }
   }
 }
