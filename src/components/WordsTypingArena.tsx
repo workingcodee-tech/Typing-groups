@@ -3,10 +3,11 @@ import { sounds } from '../utils/soundEffects';
 import { RotateCcw, Flag } from 'lucide-react';
 import { RaceStats } from '../types';
 import { AnalogSpeedometer } from './AnalogSpeedometer';
-import { generate5000Words } from '../data/words';
+import { generate5000Words, GameLanguage } from '../data/words';
 
 interface WordsTypingArenaProps {
-  wordsList: string[]; // 5000 ta tasodifiy inglizcha so'zlar
+  wordsList: string[]; // Tasodifiy so'zlar ro'yxati (O'zbekcha yoki Inglizcha)
+  language?: GameLanguage; // 'uz' | 'en'
   onProgressUpdate: (progress: number, wpm: number, accuracy: number, chars: number, errors: number, currentMeters: number) => void;
   onFinish: (stats: RaceStats) => void;
   isGameActive: boolean;
@@ -41,6 +42,7 @@ export const getTargetCharsForDistance = (meters: number): number => {
 
 export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
   wordsList,
+  language = 'uz',
   onProgressUpdate,
   onFinish,
   isGameActive,
@@ -64,21 +66,21 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
   const [activeWords, setActiveWords] = useState<string[]>(() => {
     if (wordsList && wordsList.length >= 120) return wordsList;
     return wordsList && wordsList.length > 0
-      ? [...wordsList, ...generate5000Words(300)]
-      : generate5000Words(500);
+      ? [...wordsList, ...generate5000Words(300, language)]
+      : generate5000Words(500, language);
   });
 
   useEffect(() => {
     if (wordsList && wordsList.length > 0) {
       if (wordsList.length < 150) {
-        setActiveWords([...wordsList, ...generate5000Words(300)]);
+        setActiveWords([...wordsList, ...generate5000Words(300, language)]);
       } else {
         setActiveWords(wordsList);
       }
     } else {
-      setActiveWords(generate5000Words(500));
+      setActiveWords(generate5000Words(500, language));
     }
-  }, [wordsList]);
+  }, [wordsList, language]);
 
   // Statistika
   const [totalCorrectChars, setTotalCorrectChars] = useState<number>(0);
@@ -314,7 +316,7 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
 
     // Agar so'zlar tugab qolish arafasida bo'lsa, avtomatik yana 150 ta yangi so'z qo'shish (hech qachon tugamaydi)
     if (nextWordIdx >= activeWords.length - 15) {
-      setActiveWords((prev) => [...prev, ...generate5000Words(150)]);
+      setActiveWords((prev) => [...prev, ...generate5000Words(150, language)]);
     }
 
     setCurrentWordIndex(nextWordIdx);
@@ -748,7 +750,7 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
                   <span
                     key={actualIndex}
                     ref={(el) => { wordRefs.current[actualIndex] = el; }}
-                    className="relative inline-flex items-center mr-3 select-none py-1"
+                    className="relative inline-flex items-center mr-3 select-none py-1 px-1 rounded-lg bg-slate-800/40 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)] transition-all"
                   >
                     {word.split('').map((char, cIdx) => {
                       const isTyped = cIdx < currentInput.length;
@@ -760,16 +762,16 @@ export const WordsTypingArena: React.FC<WordsTypingArenaProps> = ({
                         <span key={cIdx} className="relative inline-block leading-none">
                           {/* Aktiv harf ustida chaqnagan kursor */}
                           {isCurrentChar && (
-                            <span className="absolute -left-[1.5px] top-0 bottom-0 w-[2.5px] bg-cyan-400 rounded-full shadow-[0_0_8px_#38bdf8] animate-pulse z-10" />
+                            <span className="absolute -left-[1.5px] top-0 bottom-0 w-[2.5px] bg-cyan-400 rounded-full shadow-[0_0_10px_#38bdf8] typing-caret z-10" />
                           )}
                           <span
-                            className={`transition-colors duration-75 ${
+                            className={`transition-all duration-100 ${
                               isTyped
                                 ? isCorrect
-                                ? 'text-white font-medium'
-                                : 'text-rose-500 font-bold'
+                                  ? 'text-emerald-300 font-bold drop-shadow-[0_0_6px_rgba(52,211,153,0.5)] animate-char-pop'
+                                  : 'text-rose-400 font-bold drop-shadow-[0_0_6px_rgba(244,63,94,0.5)] animate-char-shake'
                                 : isCurrentChar
-                                ? 'text-slate-100 font-medium'
+                                ? 'text-white font-bold'
                                 : 'text-slate-400'
                             }`}
                           >

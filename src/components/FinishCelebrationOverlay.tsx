@@ -128,17 +128,17 @@ export const FinishCelebrationOverlay: React.FC<FinishCelebrationOverlayProps> =
   }, [onRestart]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/85 backdrop-blur-md animate-backdrop-fade overflow-y-auto">
       {/* Oltin/Neon G'alaba Nurlari (Aura effect) */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
         <div
-          className={`w-[500px] h-[500px] rounded-full blur-3xl opacity-30 animate-pulse ${
+          className={`w-[500px] h-[500px] rounded-full blur-3xl opacity-35 animate-pulse ${
             isWinner ? 'bg-amber-400' : 'bg-cyan-500'
           }`}
         />
       </div>
 
-      <div className="relative w-full max-w-lg bg-[#08101d] border-2 border-cyan-500/50 rounded-3xl p-5 sm:p-6 shadow-[0_0_50px_rgba(6,182,212,0.35)] text-center flex flex-col items-center my-auto overflow-hidden">
+      <div className="relative w-full max-w-lg bg-[#08101d] border-2 border-cyan-500/50 rounded-3xl p-5 sm:p-6 shadow-[0_0_55px_rgba(6,182,212,0.4)] text-center flex flex-col items-center my-auto overflow-hidden animate-modal-pop">
         {/* Shaxmat Finish bayrog'i fon lentalari */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-[repeating-conic-gradient(#050914_0%_25%,#fbbf24_0%_50%)] bg-[length:14px_8px]" />
 
@@ -299,7 +299,7 @@ export const FinishCelebrationOverlay: React.FC<FinishCelebrationOverlayProps> =
               <button
                 type="button"
                 onClick={onNextRound || onRestart}
-                className="w-full sm:flex-1 py-3 px-4 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 active:scale-98 transition-all cursor-pointer animate-pulse"
+                className="interactive-btn shimmer-gleam w-full sm:flex-1 py-3 px-4 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 active:scale-98 transition-all cursor-pointer animate-pulse"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>KEYINGI BOSQICHNI BOSHLASH (Barcha uchun) 🏁</span>
@@ -315,7 +315,7 @@ export const FinishCelebrationOverlay: React.FC<FinishCelebrationOverlayProps> =
             <button
               type="button"
               onClick={onRestart}
-              className="w-full sm:flex-1 py-3 px-4 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 active:scale-98 transition-all cursor-pointer"
+              className="interactive-btn shimmer-gleam w-full sm:flex-1 py-3 px-4 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 active:scale-98 transition-all cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
               <span>QAYTA POYGA QILISH (Tab)</span>
@@ -326,7 +326,7 @@ export const FinishCelebrationOverlay: React.FC<FinishCelebrationOverlayProps> =
           <button
             type="button"
             onClick={onOpenDetailedStats}
-            className="w-full sm:w-auto py-3 px-4 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            className="interactive-btn w-full sm:w-auto py-3 px-4 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
           >
             <BarChart3 className="w-4 h-4 text-cyan-400" />
             <span>Batafsil</span>
@@ -337,7 +337,7 @@ export const FinishCelebrationOverlay: React.FC<FinishCelebrationOverlayProps> =
             <button
               type="button"
               onClick={onNextDifficulty}
-              className="w-full sm:w-auto py-3 px-3 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              className="interactive-btn w-full sm:w-auto py-3 px-3 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-all cursor-pointer"
               title="Keyingi darajaga o'tish"
             >
               <ArrowRight className="w-4 h-4" />
