@@ -113,12 +113,14 @@ export const HighwayRaceTrack = React.memo<HighwayRaceTrackProps>(({
                 {/* Yo'lning o'rtasidagi oq chiziqchalar (dashed lane divider) */}
                 <div className="absolute inset-x-8 bottom-0 h-[1px] bg-dashed border-b border-dashed border-slate-700/60" />
 
-                {/* Yon tomondan harakatlanuvchi sport avtomobili */}
+                {/* Yon tomondan harakatlanuvchi sport avtomobili (Silliq va to'xtovsiz harakat) */}
                 <div
-                  className="absolute z-20 pointer-events-none will-change-[left]"
+                  className="absolute z-20 pointer-events-none will-change-[left,transform]"
                   style={{
                     left: `${leftPercent}%`,
-                    transition: 'left 0.35s cubic-bezier(0.25, 1, 0.5, 1)'
+                    transition: racer.isUser
+                      ? 'left 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
+                      : 'left 0.08s linear'
                   }}
                 >
                   <CarSprite

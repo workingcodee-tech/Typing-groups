@@ -630,22 +630,22 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
             </button>
           )}
 
-          {/* Guruhdan chiqish yoki xonani tugatish */}
+          {/* Guruhdan chiqish yoki xonani to'xtatish */}
           {isCreator ? (
             <button
               type="button"
               onClick={handleDeleteRoom}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-950/90 hover:bg-rose-900 border border-rose-600/90 text-rose-100 hover:text-white rounded-xl text-xs font-black cursor-pointer transition-all active:scale-95 shadow-md shadow-rose-950/40"
-              title="Guruh poygasini butunlay tugatish va asosiy sahifaga qaytish"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-rose-950 to-red-950 hover:from-rose-900 hover:to-red-900 border-2 border-rose-500/80 hover:border-rose-400 text-rose-100 hover:text-white rounded-xl text-xs font-black cursor-pointer transition-all active:scale-95 shadow-lg shadow-rose-950/60 group"
+              title="Guruh poygasini butunlay toʻxtatish va asosiy sahifaga qaytish"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Tugatish</span>
+              <span className="w-2.5 h-2.5 rounded-xs bg-rose-500 group-hover:scale-110 transition-transform shadow-xs shadow-rose-400" />
+              <span>Toʻxtatish</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={handleParticipantLeave}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-95 shadow-md"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 border-2 border-rose-500/60 text-slate-200 hover:text-white rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-95 shadow-md"
               title="Guruhdan chiqish va asosiy sahifaga qaytish"
             >
               <LogOut className="w-3.5 h-3.5 text-rose-400" />

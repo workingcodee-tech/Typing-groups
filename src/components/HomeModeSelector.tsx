@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Users, PlusCircle, Car, Volume2, VolumeX, Check, Copy, X, Edit3, AlertCircle, ArrowRight, Crown, Globe } from 'lucide-react';
+import { Play, Users, PlusCircle, Car, Volume2, VolumeX, Check, Copy, X, Edit3, AlertCircle, ArrowRight, Crown, Globe, Gauge, Flag } from 'lucide-react';
 import { FAMOUS_CARS, RacingCar } from '../data/cars';
 import { CarShowcase } from './CarShowcase';
 import { DifficultyLevel } from '../types';
@@ -51,8 +51,21 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
   const [tempFirstName, setTempFirstName] = useState<string>('');
 
   const [showPlaySoloModal, setShowPlaySoloModal] = useState<boolean>(false);
-  const [soloDifficulty, setSoloDifficulty] = useState<DifficultyLevel>('medium');
-  const [soloDistance, setSoloDistance] = useState<number>(100);
+  const [soloDifficulty, setSoloDifficulty] = useState<DifficultyLevel>(() => {
+    try {
+      return (localStorage.getItem('tg_user_diff') as DifficultyLevel) || 'medium';
+    } catch {
+      return 'medium';
+    }
+  });
+  const [soloDistance, setSoloDistance] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('tg_user_dist');
+      return saved ? Number(saved) : 100;
+    } catch {
+      return 100;
+    }
+  });
   const [soloLanguage, setSoloLanguage] = useState<GameLanguage>(() => {
     try {
       return (localStorage.getItem('tg_game_lang') as GameLanguage) || 'uz';
@@ -203,6 +216,8 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
   const handleConfirmStartSolo = () => {
     setShowPlaySoloModal(false);
     try {
+      localStorage.setItem('tg_user_diff', soloDifficulty);
+      localStorage.setItem('tg_user_dist', soloDistance.toString());
       localStorage.setItem('tg_game_lang', soloLanguage);
     } catch {
       // ignore
@@ -468,67 +483,187 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 2: "YAKKA POYGA" — FAQAT TIL TANLASH (O'ZBEK / ENGLISH) */}
+      {/* MODAL 2: "YAKKA POYGA" SOZLAMALARI (TIL + DARAJA + MASOFA) */}
       {/* ========================================================= */}
       {showPlaySoloModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
-          <div className="relative w-full max-w-sm bg-[#0a0f1d] border-2 border-emerald-500/50 rounded-3xl p-6 shadow-[0_0_50px_rgba(16,185,129,0.3)] space-y-5 animate-modal-pop">
-            {/* Yopish */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
+          <div className="relative w-full max-w-lg bg-[#0a0f1d] border-2 border-emerald-500/50 rounded-3xl p-5 sm:p-6 shadow-[0_0_60px_rgba(16,185,129,0.35)] space-y-4 animate-modal-pop text-slate-100">
+            {/* Yopish tugmasi */}
             <button
               onClick={() => setShowPlaySoloModal(false)}
-              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer"
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Yopish"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                <Globe className="w-5 h-5" />
+            {/* Sarlavha */}
+            <div className="flex items-center gap-3 border-b border-slate-800/80 pb-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-lg shadow-emerald-500/30 flex items-center justify-center">
+                <div className="w-full h-full bg-[#0a0f1d] rounded-[14px] flex items-center justify-center text-emerald-400">
+                  <Play className="w-5 h-5 fill-current ml-0.5" />
+                </div>
               </div>
               <div>
-                <h3 className="text-lg font-black text-white">Oʻyin Tili</h3>
-                <p className="text-xs text-slate-400">Poyga uchun tilni tanlang</p>
+                <h3 className="text-lg font-black text-white font-mono tracking-tight">
+                  Yakka Poyga Sozlamalari
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Til, botlar darajasi va poyga masofasini tanlang
+                </p>
               </div>
             </div>
 
-            {/* Faqat Til Tanlash: O'zbekcha / English */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => setSoloLanguage('uz')}
-                className={`py-3.5 px-3 rounded-2xl border-2 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
-                  soloLanguage === 'uz'
-                    ? 'border-emerald-400 bg-emerald-950/80 text-emerald-200 font-black shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400/40'
-                    : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                }`}
-              >
-                <span className="text-2xl">🇺🇿</span>
-                <span className="text-sm font-black">Oʻzbekcha</span>
-                <span className="text-[10px] opacity-75 font-mono">Lotin alifbosi</span>
-              </button>
+            {/* 1. O'YIN TILI TANLASH (O'ZBEKCHA / ENGLISH) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-slate-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                  1. Oʻyin Tili:
+                </span>
+                <span className="text-cyan-400 font-bold">
+                  {soloLanguage === 'uz' ? '🇺🇿 Oʻzbekcha (Lotin)' : '🇬🇧 English'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSoloLanguage('uz')}
+                  className={`p-2.5 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                    soloLanguage === 'uz'
+                      ? 'border-emerald-400 bg-emerald-950/70 text-white font-black shadow-md shadow-emerald-500/20 ring-1 ring-emerald-400/50 scale-[1.01]'
+                      : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="text-2xl shrink-0">🇺🇿</span>
+                  <div className="leading-tight">
+                    <span className="block text-xs font-bold">Oʻzbekcha</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Lotin alifbosi</span>
+                  </div>
+                  {soloLanguage === 'uz' && <Check className="w-4 h-4 text-emerald-400 ml-auto shrink-0" />}
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setSoloLanguage('en')}
-                className={`py-3.5 px-3 rounded-2xl border-2 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
-                  soloLanguage === 'en'
-                    ? 'border-emerald-400 bg-emerald-950/80 text-emerald-200 font-black shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400/40'
-                    : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                }`}
-              >
-                <span className="text-2xl">🇬🇧</span>
-                <span className="text-sm font-black">English</span>
-                <span className="text-[10px] opacity-75 font-mono">Speed typing</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setSoloLanguage('en')}
+                  className={`p-2.5 rounded-2xl border-2 text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                    soloLanguage === 'en'
+                      ? 'border-emerald-400 bg-emerald-950/70 text-white font-black shadow-md shadow-emerald-500/20 ring-1 ring-emerald-400/50 scale-[1.01]'
+                      : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="text-2xl shrink-0">🇬🇧</span>
+                  <div className="leading-tight">
+                    <span className="block text-xs font-bold">English</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Speed typing</span>
+                  </div>
+                  {soloLanguage === 'en' && <Check className="w-4 h-4 text-emerald-400 ml-auto shrink-0" />}
+                </button>
+              </div>
             </div>
 
-            {/* Start tugmasi */}
+            {/* 2. DARAJA (QIYINLIK DARAJASI: OSON, O'RTA, QIYIN) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-slate-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <Gauge className="w-3.5 h-3.5 text-amber-400" />
+                  2. Poyga Darajasi:
+                </span>
+                <span className="font-bold text-amber-400">
+                  {soloDifficulty === 'easy' ? '🟢 Oson (~15 WPM)' : soloDifficulty === 'medium' ? '🟡 Oʻrta (~28 WPM)' : '🔴 Qiyin (~50 WPM)'}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'easy', label: 'Oson', icon: '🟢', desc: '~15 WPM', color: 'border-emerald-500 bg-emerald-950/60 text-emerald-300 shadow-emerald-500/20' },
+                  { id: 'medium', label: 'Oʻrta', icon: '🟡', desc: '~28 WPM', color: 'border-amber-500 bg-amber-950/60 text-amber-300 shadow-amber-500/20' },
+                  { id: 'hard', label: 'Qiyin', icon: '🔴', desc: '~50 WPM', color: 'border-rose-500 bg-rose-950/60 text-rose-300 shadow-rose-500/20' }
+                ].map((item) => {
+                  const isSelected = soloDifficulty === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSoloDifficulty(item.id as DifficultyLevel)}
+                      className={`p-2.5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? `${item.color} shadow-lg ring-1 ring-white/20 font-bold scale-[1.02]`
+                          : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="font-black text-xs sm:text-sm flex items-center gap-1">
+                          <span>{item.icon}</span>
+                          <span>{item.label}</span>
+                        </span>
+                        {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
+                      </div>
+                      <span className="text-[10px] block opacity-80 font-mono">{item.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. MASOFA (50, 100, 200, 500, 1000, 1500 METR) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-slate-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <Flag className="w-3.5 h-3.5 text-emerald-400" />
+                  3. Poyga Masofasi:
+                </span>
+                <span className="text-emerald-400 font-bold font-mono">
+                  🏁 {soloDistance} metr
+                </span>
+              </div>
+              <div className="grid grid-cols-6 gap-1.5">
+                {[
+                  { dist: 50, tag: 'Tezkor' },
+                  { dist: 100, tag: 'Klassik' },
+                  { dist: 200, tag: 'Sprint' },
+                  { dist: 500, tag: 'Oʻrta' },
+                  { dist: 1000, tag: 'Uzoq' },
+                  { dist: 1500, tag: 'Marafon' }
+                ].map(({ dist, tag }) => {
+                  const isSelected = soloDistance === dist;
+                  return (
+                    <button
+                      key={dist}
+                      type="button"
+                      onClick={() => setSoloDistance(dist)}
+                      className={`py-2 px-1 rounded-xl border-2 text-center transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-emerald-400 bg-emerald-950 text-emerald-200 font-black shadow-md shadow-emerald-500/30 ring-1 ring-emerald-400/50 scale-[1.03]'
+                          : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="block text-xs sm:text-sm font-black font-mono leading-tight">{dist}m</span>
+                      <span className="text-[9px] block text-slate-500 font-sans truncate">{tag}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Xulosa qatori */}
+            <div className="px-3.5 py-2 bg-slate-950/80 border border-slate-800 rounded-xl flex items-center justify-between text-[11px] font-mono text-slate-300">
+              <span className="text-slate-400">Tanlangan:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-cyan-400 font-bold">{soloLanguage === 'uz' ? '🇺🇿 Oʻzbek' : '🇬🇧 English'}</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-amber-400 font-bold">{soloDifficulty === 'easy' ? '🟢 Oson' : soloDifficulty === 'medium' ? '🟡 Oʻrta' : '🔴 Qiyin'}</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-emerald-400 font-bold font-mono">🏁 {soloDistance}m</span>
+              </div>
+            </div>
+
+            {/* KATTA START TUGMASI */}
             <button
               type="button"
               onClick={handleConfirmStartSolo}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-600 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-black text-base rounded-2xl shadow-xl shadow-emerald-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-600 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2 group"
             >
-              <Play className="w-4 h-4 fill-current" />
+              <Play className="w-4 h-4 fill-current group-hover:scale-110 transition-transform" />
               <span>Poygani Boshlash (3-2-1) 🚀</span>
             </button>
           </div>

@@ -6,7 +6,7 @@ import { FinishCelebrationOverlay } from './FinishCelebrationOverlay';
 import { CarSelector } from './CarSelector';
 import { generate5000Words, GameLanguage } from '../data/words';
 import { RaceStats, DifficultyLevel } from '../types';
-import { Users, Volume2, VolumeX, X, Edit3, Globe } from 'lucide-react';
+import { Users, Volume2, VolumeX, X, Edit3, Globe, Play, RotateCcw, LogOut } from 'lucide-react';
 import { FAMOUS_CARS } from '../data/cars';
 import { sounds, SwitchSoundType } from '../utils/soundEffects';
 import { sortRacersByRank } from '../utils/raceRanking';
@@ -76,6 +76,13 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     }
   }, [initialDistance]);
 
+  // initialDifficulty o'zgarganda yangilash
+  useEffect(() => {
+    if (initialDifficulty && initialDifficulty !== difficulty) {
+      setDifficulty(initialDifficulty);
+    }
+  }, [initialDifficulty]);
+
   // initialLanguage o'zgarganda yangilash
   useEffect(() => {
     if (initialLanguage && initialLanguage !== language) {
@@ -84,10 +91,12 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     }
   }, [initialLanguage, language]);
 
-  // 3-2-1 Countdown holati
+  // 3-2-1 Countdown va Pauza holati
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isRaceActive, setIsRaceActive] = useState<boolean>(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
   const raceStartTimeRef = useRef<number | null>(null);
+  const pausedTimeRef = useRef<number | null>(null);
 
   const selectedCar = FAMOUS_CARS.find(c => c.id === carId) || FAMOUS_CARS[0];
 
@@ -180,9 +189,9 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     };
   }, []);
 
-  // Botlarning masofaga va qiyinlik darajasiga qarab harakatlanishi
+  // Botlarning masofaga va qiyinlik darajasiga qarab SILIQ HARAKATLANISHI (40ms yangilanish, sakrashlarsiz)
   useEffect(() => {
-    if (!isRaceActive || raceStats) {
+    if (!isRaceActive || raceStats || isPaused) {
       if (botIntervalRef.current) {
         clearInterval(botIntervalRef.current);
         botIntervalRef.current = null;
@@ -196,9 +205,11 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
       botSpeeds[b.id] = b.wpm;
     });
 
+    let lastRankCheck = 0;
     botIntervalRef.current = window.setInterval(() => {
-      if (!raceStartTimeRef.current) return;
-      const elapsedSeconds = (Date.now() - raceStartTimeRef.current) / 1000;
+      if (!raceStartTimeRef.current || isPaused) return;
+      const now = Date.now();
+      const elapsedSeconds = (now - raceStartTimeRef.current) / 1000;
 
       setRacers((prev) => {
         const updated = prev.map((racer) => {
@@ -206,7 +217,8 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
 
           const wpm = botSpeeds[racer.id] || 45;
           const wordsTyped = elapsedSeconds * (wpm / 60);
-          const progress = Math.min(100, Math.round((wordsTyped / targetWords) * 100));
+          const rawProgress = (wordsTyped / targetWords) * 100;
+          const progress = Math.min(100, Number(rawProgress.toFixed(2)));
 
           return {
             ...racer,
@@ -217,24 +229,30 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           };
         });
 
-        const sorted = sortRacersByRank(updated);
-        const rankMap = new Map(sorted.map((r, i) => [r.id, i + 1]));
+        // Reytingni har 200ms da bir yoki marraga yetganda yangilaymiz (CPU yuklamasini kamaytirib, harakatni 100% silliq qiladi)
+        if (now - lastRankCheck > 200 || updated.some(r => r.finished && !prev.find(p => p.id === r.id)?.finished)) {
+          lastRankCheck = now;
+          const sorted = sortRacersByRank(updated);
+          const rankMap = new Map(sorted.map((r, i) => [r.id, i + 1]));
 
-        return updated.map((r) => ({
-          ...r,
-          rank: rankMap.get(r.id) || 1
-        }));
+          return updated.map((r) => ({
+            ...r,
+            rank: rankMap.get(r.id) || 1
+          }));
+        }
+
+        return updated;
       });
-    }, 250);
+    }, 40);
 
     return () => {
       if (botIntervalRef.current) {
         clearInterval(botIntervalRef.current);
       }
     };
-  }, [isRaceActive, raceStats, selectedDistance, difficulty]);
+  }, [isRaceActive, raceStats, isPaused, selectedDistance, difficulty]);
 
-  // Foydalanuvchi klaviaturada yozganda progress yangilanishi (Klaviatura qotmasligi uchun har 100ms da trassani yangilaydi)
+  // Foydalanuvchi klaviaturada yozganda progress yangilanishi (Tezkor va silliq)
   const lastUserProgressUpdateRef = useRef<number>(0);
 
   const handleProgressUpdate = useCallback((
@@ -247,8 +265,8 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
   ) => {
     const now = Date.now();
     const isFinished = userProgress >= 100;
-    // Har bir harfda emas, har 100ms da bir yoki marraga yetganda trassa va reytingni yangilaymiz
-    if (!isFinished && now - lastUserProgressUpdateRef.current < 100) {
+    // Har bir harf trassada sakramasdan tezkor va silliq siljishi uchun 25ms
+    if (!isFinished && now - lastUserProgressUpdateRef.current < 25) {
       return;
     }
     lastUserProgressUpdateRef.current = now;
@@ -258,7 +276,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
         if (!racer.isUser) return racer;
         return {
           ...racer,
-          progress: userProgress,
+          progress: Number(userProgress.toFixed(2)),
           currentWpm: wpm,
           accuracy,
           finished: userProgress >= 100
@@ -292,8 +310,24 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     setIsRaceActive(false);
   }, [selectedDistance, difficulty]);
 
+  const handlePauseToggle = useCallback(() => {
+    setIsPaused(true);
+    pausedTimeRef.current = Date.now();
+  }, []);
+
+  const handleResumeRace = useCallback(() => {
+    if (pausedTimeRef.current && raceStartTimeRef.current) {
+      const pauseDuration = Date.now() - pausedTimeRef.current;
+      raceStartTimeRef.current += pauseDuration;
+    }
+    pausedTimeRef.current = null;
+    setIsPaused(false);
+  }, []);
+
   const handleRestartRace = useCallback((langToUse?: GameLanguage) => {
     const activeLang = langToUse || language;
+    setIsPaused(false);
+    pausedTimeRef.current = null;
     setRaceStats(null);
     setShowCelebration(false);
     setShowDetailedModal(false);
@@ -352,33 +386,32 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     <div className="w-full h-full max-w-none flex flex-col justify-between py-1.5 px-2 sm:px-4 select-none relative overflow-hidden bg-[#070b14]/70">
       {/* 1. GORIZONTAL BIR QATORLI HEADER (O'yin nomi, Yakka poyga, O'yinchi nomi, Daraja, Tugatish) */}
       <header className="w-full flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-5 py-2 bg-slate-950/85 border border-slate-800/80 rounded-2xl shadow-xl backdrop-blur-md shrink-0 whitespace-nowrap overflow-x-auto no-scrollbar">
-        {/* Chap qism: O'yin nomi va Rejim */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* O'yin Logosi va Nomi */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-emerald-950/90 to-slate-900 border border-emerald-500/40 rounded-xl">
-            <span className="text-sm">🏎️</span>
+        {/* Chap qism: O'yin Logosi, Nomi va Rejim */}
+        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+          {/* Dumaloq O'yin Logosi */}
+          <div
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full p-0.5 bg-gradient-to-tr from-cyan-400 via-blue-500 to-emerald-400 shadow-[0_0_16px_rgba(6,182,212,0.5)] shrink-0 flex items-center justify-center hover:scale-105 transition-transform"
+            title="Type Groups"
+          >
+            <img
+              src="/type-groups-logo.png"
+              alt="Type Groups Logo"
+              className="w-full h-full object-cover rounded-full"
+            />
+          </div>
+
+          {/* O'yin Nomi */}
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-emerald-950/90 to-slate-900 border border-emerald-500/40 rounded-xl shadow-sm">
             <span className="text-xs sm:text-sm font-black tracking-tight text-white font-mono">
-              TYPING <span className="text-emerald-400">GROUPS</span>
+              TYPE <span className="text-emerald-400">GROUPS</span>
             </span>
           </div>
 
           {/* Rejim: Yakka Poyga */}
-          <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-900/90 border border-slate-700/70 rounded-xl text-xs font-bold text-slate-200">
+          <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-slate-900/90 border border-slate-700/70 rounded-xl text-xs font-bold text-slate-300">
             <span>🏁</span>
             <span>Yakka Poyga</span>
           </div>
-
-          {/* Multiplayer (Guruh) ga o'tish tugmasi */}
-          {onOpenMultiplayer && (
-            <button
-              type="button"
-              onClick={onOpenMultiplayer}
-              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-cyan-300 hover:text-white bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-500/50 rounded-xl transition-all shadow-md cursor-pointer active:scale-95"
-            >
-              <Users className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Guruhga Qoʻshilish</span>
-            </button>
-          )}
         </div>
 
         {/* Markaziy qism: O'yinchi nomi, Mashina va Daraja sozlamalari */}
@@ -447,9 +480,9 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
             </button>
           </div>
 
-          {/* Masofa: 50m, 100m, 200m, 500m, 1000m */}
+          {/* Masofa: 50m, 100m, 200m, 500m, 1000m, 1500m */}
           <div className="hidden md:flex items-center p-0.5 bg-slate-900/90 border border-slate-800 rounded-xl text-[10px] font-mono font-bold">
-            {[50, 100, 200, 500, 1000].map((dist) => (
+            {[50, 100, 200, 500, 1000, 1500].map((dist) => (
               <button
                 key={dist}
                 type="button"
@@ -495,18 +528,16 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
             </button>
           )}
 
-          {/* TUGATISH (Poygani to'xtatish va bosh sahifaga qaytish) */}
-          {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black text-rose-100 hover:text-white bg-rose-950/90 hover:bg-rose-900 border border-rose-600/90 rounded-xl transition-all shadow-md shadow-rose-950/40 cursor-pointer active:scale-95"
-              title="Poygani tugatish va bosh menyuga qaytish"
-            >
-              <span>🛑</span>
-              <span>Tugatish</span>
-            </button>
-          )}
+          {/* TO'XTATISH TUGMASI (STOP / PAUSE) */}
+          <button
+            type="button"
+            onClick={handlePauseToggle}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-rose-950 to-red-950 hover:from-rose-900 hover:to-red-900 border-2 border-rose-500/80 hover:border-rose-400 text-rose-100 hover:text-white rounded-xl text-xs font-black transition-all shadow-lg shadow-rose-950/60 cursor-pointer active:scale-95 group"
+            title="Poygani toʻxtatish (Pauza / Bosh sahifaga qaytish)"
+          >
+            <span className="w-2.5 h-2.5 rounded-xs bg-rose-500 group-hover:scale-110 transition-transform shadow-xs shadow-rose-400" />
+            <span>Toʻxtatish</span>
+          </button>
         </div>
       </header>
 
@@ -568,7 +599,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
               language={language}
               onProgressUpdate={handleProgressUpdate}
               onFinish={handleFinish}
-              isGameActive={isRaceActive}
+              isGameActive={isRaceActive && !isPaused}
               countdownActive={countdown !== null}
               selectedDistance={selectedDistance}
               onDistanceChange={handleDistanceChange}
@@ -579,6 +610,54 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           );
         })()}
       </div>
+
+      {/* POYGA TO'XTATILGANDA (PAUSE) MODALI */}
+      {isPaused && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
+          <div className="relative w-full max-w-sm bg-[#0a0f1d] border-2 border-amber-500/50 rounded-3xl p-6 shadow-[0_0_50px_rgba(245,158,11,0.3)] space-y-4 text-center animate-modal-pop text-slate-100">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center mx-auto text-2xl shadow-lg shadow-amber-500/20">
+              ⏸️
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white font-mono">Poyga Toʻxtatildi</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Poygani davom ettirishingiz, qayta boshlashingiz yoki bosh sahifaga chiqishingiz mumkin
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={handleResumeRace}
+                className="w-full py-3 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-300 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-emerald-500/30 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>Davom Ettirish</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleRestartRace()}
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-bold text-sm rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+              >
+                <RotateCcw className="w-4 h-4 text-cyan-400" />
+                <span>Qayta Boshlash</span>
+              </button>
+
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="w-full py-3 bg-rose-950/80 hover:bg-rose-900 border border-rose-600/70 text-rose-200 hover:text-white font-bold text-sm rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <LogOut className="w-4 h-4 text-rose-400" />
+                  <span>Bosh Sahifaga Chiqish</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 4. G'alaba Animatsiyasi (FinishCelebrationOverlay) */}
       {raceStats && showCelebration && (
