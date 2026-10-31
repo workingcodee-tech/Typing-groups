@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Users, PlusCircle, Car, Volume2, VolumeX, Check, Copy, X, Edit3, AlertCircle, ArrowRight, Crown } from 'lucide-react';
+import { Play, Users, PlusCircle, Car, Volume2, VolumeX, Check, Copy, X, Edit3, AlertCircle, ArrowRight, Crown, Globe } from 'lucide-react';
 import { FAMOUS_CARS, RacingCar } from '../data/cars';
 import { CarShowcase } from './CarShowcase';
 import { DifficultyLevel } from '../types';
 import { SwitchSoundType } from '../utils/soundEffects';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
+import { GameLanguage } from '../data/words';
 
 interface ModalParticipant {
   id: string;
@@ -21,7 +22,7 @@ interface HomeModeSelectorProps {
     carId: string;
   };
   onUpdateUser: (name: string, carId: string) => void;
-  onStartSolo: (userName: string, carId: string, difficulty: DifficultyLevel, distance?: number) => void;
+  onStartSolo: (userName: string, carId: string, difficulty: DifficultyLevel, distance?: number, language?: GameLanguage) => void;
   onJoinGroup: (roomId: string, userName: string, carId: string, enterImmediately?: boolean) => Promise<{ success: boolean; error?: string }>;
   onCreateGroup: (groupName: string, userName: string, carId: string, targetDistance?: number, enterImmediately?: boolean) => Promise<string | null>;
   onEnterCreatedRoom: () => void;
@@ -52,6 +53,13 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
   const [showPlaySoloModal, setShowPlaySoloModal] = useState<boolean>(false);
   const [soloDifficulty, setSoloDifficulty] = useState<DifficultyLevel>('medium');
   const [soloDistance, setSoloDistance] = useState<number>(100);
+  const [soloLanguage, setSoloLanguage] = useState<GameLanguage>(() => {
+    try {
+      return (localStorage.getItem('tg_game_lang') as GameLanguage) || 'uz';
+    } catch {
+      return 'uz';
+    }
+  });
 
   const [showJoinModal, setShowJoinModal] = useState<boolean>(false);
   const [joinPin, setJoinPin] = useState<string>(initialRoomId);
@@ -194,7 +202,12 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
   // Yakka poygani boshlash
   const handleConfirmStartSolo = () => {
     setShowPlaySoloModal(false);
-    onStartSolo(name, selectedCarId, soloDifficulty, soloDistance);
+    try {
+      localStorage.setItem('tg_game_lang', soloLanguage);
+    } catch {
+      // ignore
+    }
+    onStartSolo(name, selectedCarId, soloDifficulty, soloDistance, soloLanguage);
   };
 
   // Guruhga qo'shilish (Modal yopilmasdan, avval 'Guruhga qo'shilmoqda...' ko'rsatiladi va ulanilgach a'zolar jadvali chiqadi)
@@ -455,11 +468,11 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 2: "O'YNASH" (YAKKA POYGA SOZLAMALARI: DARAJA & MASOFA) */}
+      {/* MODAL 2: "YAKKA POYGA" — FAQAT TIL TANLASH (O'ZBEK / ENGLISH) */}
       {/* ========================================================= */}
       {showPlaySoloModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-backdrop-fade">
-          <div className="relative w-full max-w-lg bg-[#0a0f1d] border-2 border-emerald-500/50 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(16,185,129,0.3)] space-y-5 animate-modal-pop">
+          <div className="relative w-full max-w-sm bg-[#0a0f1d] border-2 border-emerald-500/50 rounded-3xl p-6 shadow-[0_0_50px_rgba(16,185,129,0.3)] space-y-5 animate-modal-pop">
             {/* Yopish */}
             <button
               onClick={() => setShowPlaySoloModal(false)}
@@ -470,85 +483,53 @@ export const HomeModeSelector: React.FC<HomeModeSelectorProps> = ({
 
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                <Play className="w-5 h-5 fill-current" />
+                <Globe className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-white">Yakka Poyga Sozlamalari</h3>
-                <p className="text-xs text-slate-400">Qiyinlik darajasi va poyga masofasini tanlang</p>
+                <h3 className="text-lg font-black text-white">Oʻyin Tili</h3>
+                <p className="text-xs text-slate-400">Poyga uchun tilni tanlang</p>
               </div>
             </div>
 
-            {/* Qiyinlik darajasi: Oson, O'rta, Qiyin */}
-            <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 font-mono">
-                Poyga Darajasi (Qiyinligi):
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'easy', label: 'Oson', desc: 'Sekin botlar (~15 WPM)', color: 'border-emerald-500 bg-emerald-950/40 text-emerald-300' },
-                  { id: 'medium', label: 'Oʻrta', desc: 'Balansli botlar (~28 WPM)', color: 'border-amber-500 bg-amber-950/40 text-amber-300' },
-                  { id: 'hard', label: 'Qiyin', desc: 'Tezkor botlar (~50 WPM)', color: 'border-rose-500 bg-rose-950/40 text-rose-300' }
-                ].map((item) => {
-                  const isSelected = soloDifficulty === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setSoloDifficulty(item.id as DifficultyLevel)}
-                      className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? `${item.color} shadow-lg ring-1 ring-white/20 font-bold`
-                          : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-black text-sm">{item.label}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5" />}
-                      </div>
-                      <span className="text-[10px] block opacity-80">{item.desc}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {/* Faqat Til Tanlash: O'zbekcha / English */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setSoloLanguage('uz')}
+                className={`py-3.5 px-3 rounded-2xl border-2 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
+                  soloLanguage === 'uz'
+                    ? 'border-emerald-400 bg-emerald-950/80 text-emerald-200 font-black shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400/40'
+                    : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-2xl">🇺🇿</span>
+                <span className="text-sm font-black">Oʻzbekcha</span>
+                <span className="text-[10px] opacity-75 font-mono">Lotin alifbosi</span>
+              </button>
 
-            {/* Masofa: 50, 100, 500, 1000, 1500 metr */}
-            <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 font-mono">
-                Poyga Masofasi:
-              </label>
-              <div className="grid grid-cols-5 gap-1.5">
-                {[50, 100, 500, 1000, 1500].map((dist) => {
-                  const isSelected = soloDistance === dist;
-                  return (
-                    <button
-                      key={dist}
-                      type="button"
-                      onClick={() => setSoloDistance(dist)}
-                      className={`py-3 px-2 rounded-xl border-2 text-center transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-emerald-400 bg-emerald-950/70 text-emerald-200 font-black shadow-md'
-                          : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                      }`}
-                    >
-                      <span className="block text-sm font-black font-mono">{dist}m</span>
-                      <span className="text-[9px] block text-slate-500">
-                        {dist === 50 ? 'Tezkor' : dist === 100 ? 'Klassik' : dist === 500 ? 'Oʻrta' : dist === 1000 ? 'Uzoq' : 'Marafon'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              <button
+                type="button"
+                onClick={() => setSoloLanguage('en')}
+                className={`py-3.5 px-3 rounded-2xl border-2 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1.5 ${
+                  soloLanguage === 'en'
+                    ? 'border-emerald-400 bg-emerald-950/80 text-emerald-200 font-black shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400/40'
+                    : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-2xl">🇬🇧</span>
+                <span className="text-sm font-black">English</span>
+                <span className="text-[10px] opacity-75 font-mono">Speed typing</span>
+              </button>
             </div>
 
             {/* Start tugmasi */}
             <button
               type="button"
               onClick={handleConfirmStartSolo}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-black text-base rounded-2xl shadow-xl shadow-emerald-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-600 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-black text-base rounded-2xl shadow-xl shadow-emerald-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>Poygani Boshlash ({soloDistance}m)</span>
+              <span>Poygani Boshlash (3-2-1) 🚀</span>
             </button>
           </div>
         </div>

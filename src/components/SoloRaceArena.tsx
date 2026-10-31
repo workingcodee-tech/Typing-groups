@@ -4,9 +4,9 @@ import { WordsTypingArena, getTargetCharsForDistance } from './WordsTypingArena'
 import { RaceResultsModal } from './RaceResultsModal';
 import { FinishCelebrationOverlay } from './FinishCelebrationOverlay';
 import { CarSelector } from './CarSelector';
-import { generate5000Words } from '../data/words';
+import { generate5000Words, GameLanguage } from '../data/words';
 import { RaceStats, DifficultyLevel } from '../types';
-import { Users, Volume2, VolumeX, X, Edit3, HelpCircle } from 'lucide-react';
+import { Users, Volume2, VolumeX, X, Edit3, Globe } from 'lucide-react';
 import { FAMOUS_CARS } from '../data/cars';
 import { sounds, SwitchSoundType } from '../utils/soundEffects';
 import { sortRacersByRank } from '../utils/raceRanking';
@@ -16,6 +16,7 @@ interface SoloRaceArenaProps {
   carId: string;
   initialDifficulty?: DifficultyLevel;
   initialDistance?: number;
+  initialLanguage?: GameLanguage;
   onBack?: () => void;
   onOpenMultiplayer?: () => void;
   onChangeCar?: (newCarId: string) => void;
@@ -48,6 +49,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
   carId,
   initialDifficulty = 'medium',
   initialDistance = 100,
+  initialLanguage = 'uz',
   onBack,
   onOpenMultiplayer,
   onChangeCar,
@@ -55,16 +57,14 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
   soundType,
   onToggleSound
 }) => {
-  const [wordsList, setWordsList] = useState<string[]>(() => generate5000Words());
+  const [language, setLanguage] = useState<GameLanguage>(initialLanguage);
+  const [wordsList, setWordsList] = useState<string[]>(() => generate5000Words(300, initialLanguage));
   const [raceStats, setRaceStats] = useState<RaceStats | null>(null);
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
   const [showDetailedModal, setShowDetailedModal] = useState<boolean>(false);
   const [isCarModalOpen, setIsCarModalOpen] = useState<boolean>(false);
   const [isNameModalOpen, setIsNameModalOpen] = useState<boolean>(false);
   const [tempName, setTempName] = useState<string>(userName);
-
-  // Poyga oldidan yo'riqnoma ko'rsatish modali
-  const [showInstructionModal, setShowInstructionModal] = useState<boolean>(true);
 
   const [selectedDistance, setSelectedDistance] = useState<number>(initialDistance);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(initialDifficulty);
@@ -76,7 +76,15 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     }
   }, [initialDistance]);
 
-  // 3-2-1 Countdown holati (boshida null bo'ladi, foydalanuvchi "Tushunarli" degach boshlanadi)
+  // initialLanguage o'zgarganda yangilash
+  useEffect(() => {
+    if (initialLanguage && initialLanguage !== language) {
+      setLanguage(initialLanguage);
+      setWordsList(generate5000Words(300, initialLanguage));
+    }
+  }, [initialLanguage, language]);
+
+  // 3-2-1 Countdown holati
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isRaceActive, setIsRaceActive] = useState<boolean>(false);
   const raceStartTimeRef = useRef<number | null>(null);
@@ -154,11 +162,11 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     }, 1000);
   }, [initialRacers]);
 
-  // Yo'riqnomani tasdiqlab poygani boshlash
-  const handleAcknowledgeInstructions = () => {
-    setShowInstructionModal(false);
+  // Yakka poygaga kirganda avtomatik 3-2-1 hisoblagich bilan boshlash
+  useEffect(() => {
     startCountdown();
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Komponent o'chirilganda taymerlarni tozalash
   useEffect(() => {
@@ -284,13 +292,14 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     setIsRaceActive(false);
   }, [selectedDistance, difficulty]);
 
-  const handleRestartRace = useCallback(() => {
+  const handleRestartRace = useCallback((langToUse?: GameLanguage) => {
+    const activeLang = langToUse || language;
     setRaceStats(null);
     setShowCelebration(false);
     setShowDetailedModal(false);
-    setWordsList(generate5000Words());
+    setWordsList(generate5000Words(300, activeLang));
     startCountdown();
-  }, [startCountdown]);
+  }, [language, startCountdown]);
 
   const handleDistanceChange = useCallback((dist: number) => {
     setSelectedDistance(dist);
@@ -302,18 +311,29 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     setRaceStats(null);
     setShowCelebration(false);
     setShowDetailedModal(false);
-    setWordsList(generate5000Words());
+    setWordsList(generate5000Words(300, language));
     startCountdown();
-  }, [startCountdown]);
+  }, [language, startCountdown]);
 
   const handleDifficultyChange = useCallback((newDiff: DifficultyLevel) => {
     setDifficulty(newDiff);
     setRaceStats(null);
     setShowCelebration(false);
     setShowDetailedModal(false);
-    setWordsList(generate5000Words());
+    setWordsList(generate5000Words(300, language));
     startCountdown();
-  }, [startCountdown]);
+  }, [language, startCountdown]);
+
+  const handleToggleLanguage = () => {
+    const nextLang: GameLanguage = language === 'uz' ? 'en' : 'uz';
+    setLanguage(nextLang);
+    try {
+      localStorage.setItem('tg_game_lang', nextLang);
+    } catch {
+      // ignore
+    }
+    handleRestartRace(nextLang);
+  };
 
   const handleSaveName = (e: React.FormEvent) => {
     e.preventDefault();
@@ -446,16 +466,17 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           </div>
         </div>
 
-        {/* O'ng qism: Ovoz, Yo'riqnoma va TUGATISH (Chiqish) */}
+        {/* O'ng qism: Ovoz, Til va TUGATISH (Chiqish) */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* Yo'riqnoma tugmasi */}
+          {/* Til almashtirish (O'zbekcha / English) */}
           <button
             type="button"
-            onClick={() => setShowInstructionModal(true)}
-            className="p-1.5 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-emerald-300 rounded-xl cursor-pointer transition-colors"
-            title="Qoidalar va yoʻriqnomani koʻrish"
+            onClick={handleToggleLanguage}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-950/80 hover:bg-blue-900 border border-blue-500/50 rounded-xl text-blue-300 font-bold text-xs cursor-pointer transition-colors"
+            title="Oʻyin tilini almashtirish (Oʻzbekcha / English)"
           >
-            <HelpCircle className="w-4 h-4" />
+            <Globe className="w-3.5 h-3.5 text-blue-400" />
+            <span>{language === 'en' ? '🇬🇧 EN' : '🇺🇿 UZ'}</span>
           </button>
 
           {/* Ovoz sozlamasi */}
@@ -544,13 +565,14 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           return (
             <WordsTypingArena
               wordsList={wordsList}
+              language={language}
               onProgressUpdate={handleProgressUpdate}
               onFinish={handleFinish}
               isGameActive={isRaceActive}
               countdownActive={countdown !== null}
               selectedDistance={selectedDistance}
               onDistanceChange={handleDistanceChange}
-              onRestart={handleRestartRace}
+              onRestart={() => handleRestartRace()}
               userRank={userLiveRank}
               totalRacers={racers.length}
             />
@@ -558,109 +580,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
         })()}
       </div>
 
-      {/* 4. POYGA BOSHLANISHDAN OLDIN KO'RSATILADIGAN YO'RIQNOMA MODALI */}
-      {showInstructionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-lg bg-[#0b1222] border-2 border-emerald-500/50 rounded-3xl p-5 sm:p-7 shadow-[0_0_50px_rgba(16,185,129,0.25)] text-slate-100 flex flex-col gap-4">
-            {/* Modal Sarlavhasi */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-xl">
-                  🏁
-                </span>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-white font-mono tracking-tight">
-                    Yakka Poyga — Yoʻriqnoma
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Oʻyin boshlanishidan oldin muhim tushuntirish
-                  </p>
-                </div>
-              </div>
-              <div className="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-[10px] font-mono text-emerald-400 font-bold">
-                {selectedDistance}m · {difficulty === 'easy' ? 'Oson' : difficulty === 'medium' ? 'Oʻrta' : 'Qiyin'}
-              </div>
-            </div>
-
-            {/* Asosiy ko'rsatma: Yozish maydoni pastda joylashganligi */}
-            <div className="p-4 bg-emerald-950/40 border-2 border-emerald-500/60 rounded-2xl relative overflow-hidden space-y-2.5 shadow-inner">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 font-black flex items-center justify-center shrink-0 text-base shadow-lg shadow-emerald-500/40 animate-bounce">
-                  ⬇️
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-emerald-300 uppercase tracking-wide">
-                    DIQQAT: Matn yozish maydoni sahifaning pastida!
-                  </h4>
-                  <p className="text-xs text-slate-300 leading-relaxed mt-1">
-                    Oʻyin boshlangach, <strong>sahifaning eng pastki qismidagi</strong> kiritish maydoniga eʼtibor qarating. Soʻzlarni ketma-ket yozib, har bir soʻzdan keyin <strong>Space (Probel)</strong> bosing.
-                  </p>
-                </div>
-              </div>
-
-              {/* Ekran anatomiyasi sxemasi */}
-              <div className="mt-3 p-2.5 bg-slate-950/90 border border-slate-800 rounded-xl space-y-1.5 font-mono text-[11px]">
-                <div className="flex items-center justify-between text-slate-400 px-2 py-1 bg-slate-900/60 rounded border border-slate-800/80">
-                  <span>⬆️ Yuqorida:</span>
-                  <span className="text-slate-300 font-bold">Header (Natija, Daraja, Tugatish)</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-400 px-2 py-1 bg-slate-900/60 rounded border border-slate-800/80">
-                  <span>🛣️ Oʻrtada:</span>
-                  <span className="text-slate-300 font-bold">Trassa va Mashinalar harakati</span>
-                </div>
-                <div className="flex items-center justify-between text-emerald-300 px-2 py-1.5 bg-emerald-900/40 rounded border border-emerald-500/60 animate-pulse font-bold">
-                  <span className="flex items-center gap-1.5">
-                    <span>⬇️</span> <span>PASTDA:</span>
-                  </span>
-                  <span className="text-emerald-200">YOZISH MAYDONI (Spidometr + Matn) ⌨️</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Qoidalar kartochkalari */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center gap-2">
-                <span className="text-base">🏎️</span>
-                <div>
-                  <div className="font-bold text-white">Tezlik</div>
-                  <div className="text-[10px] text-slate-400">Tez yozsangiz, mashina tezroq yuradi</div>
-                </div>
-              </div>
-              <div className="p-2.5 bg-slate-900/80 border border-slate-800 rounded-xl flex items-center gap-2">
-                <span className="text-base">🎯</span>
-                <div>
-                  <div className="font-bold text-white">Aniqlik</div>
-                  <div className="text-[10px] text-slate-400">Xatosiz yozish gʻalabaga olib boradi</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Haydovchi va mashina xulosasi */}
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-300 font-mono">
-              <span className="flex items-center gap-1.5">
-                <span>Haydovchi:</span>
-                <strong className="text-cyan-300">{userName}</strong>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: selectedCar.bodyColor }} />
-                <strong className="text-white">{selectedCar.name}</strong>
-              </span>
-            </div>
-
-            {/* HARAKAT TUGMASI: Tushunarli! Poygani Boshlash */}
-            <button
-              type="button"
-              onClick={handleAcknowledgeInstructions}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-slate-950 font-black text-sm uppercase tracking-wider rounded-2xl shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-all transform active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-            >
-              <span>Tushunarli! Poygani Boshlash (3-2-1)</span>
-              <span className="text-base">🚀</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 5. G'alaba Animatsiyasi (FinishCelebrationOverlay) */}
+      {/* 4. G'alaba Animatsiyasi (FinishCelebrationOverlay) */}
       {raceStats && showCelebration && (
         <FinishCelebrationOverlay
           stats={raceStats}

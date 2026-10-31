@@ -86,25 +86,25 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
   const playedCountdownRef = useRef<number | null>(null);
   const lastRoundRef = useRef<number>(1);
 
-  // Xonada barcha a'zolar chiqib ketsa, 1 daqiqadan (60s) so'ng avtomatik o'chirish
+  // Xonada kamida 1 kishi bor ekan, har 15 soniyada faollik tamg'asi (heartbeat) yangilanadi.
+  // Bu xonaning o'z-o'zidan yopilib ketishining 100% oldini oladi.
   useEffect(() => {
-    let emptyTimer: number | null = null;
-    if (roomData && participants.length === 0) {
-      emptyTimer = window.setTimeout(async () => {
-        try {
-          const partsSnap = await getDocs(collection(db, 'rooms', roomId, 'participants'));
-          if (partsSnap.empty) {
-            await deleteRoomCompletely(roomId);
-          }
-        } catch {
-          // ignore
-        }
-      }, 60000);
-    }
-    return () => {
-      if (emptyTimer) clearTimeout(emptyTimer);
+    const sendHeartbeat = async () => {
+      try {
+        const roomRef = doc(db, 'rooms', roomId);
+        await updateDoc(roomRef, {
+          lastActiveMs: Date.now(),
+          emptySince: null
+        });
+      } catch {
+        // ignore
+      }
     };
-  }, [roomId, roomData, participants.length]);
+
+    sendHeartbeat();
+    const interval = window.setInterval(sendHeartbeat, 15000);
+    return () => clearInterval(interval);
+  }, [roomId]);
 
   // 1. Xona holatini kuzatish
   useEffect(() => {
@@ -463,24 +463,6 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
       console.warn("Poygani boshlashda xatolik:", e);
     }
   };
-
-  // Foydalanuvchi brauzerni yopganda yoki boshqa sahifaga o'tganda bazani avtomatik tozalash
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (isCreator) {
-        deleteRoomCompletely(roomId);
-      } else {
-        leaveAndCleanRoom(roomId, myId);
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('pagehide', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('pagehide', handleBeforeUnload);
-    };
-  }, [roomId, myId, isCreator]);
 
   // Guruhni tugatish (Guruh yaratuvchisi bosganda xonani yopadi va Firestore'dan barcha ma'lumotlarni o'chiradi)
   const handleDeleteRoom = async () => {

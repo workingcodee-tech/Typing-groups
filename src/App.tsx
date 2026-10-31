@@ -7,7 +7,7 @@ import { ModeModal, ModeType } from './components/ModeModal';
 import { generate5000Words, GameLanguage } from './data/words';
 import { SwitchSoundType, sounds } from './utils/soundEffects';
 import { DifficultyLevel } from './types';
-import { doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { cleanStaleRooms } from './utils/cleanupRooms';
 
@@ -105,12 +105,21 @@ export default function App() {
     }
   });
 
+  const [soloLanguage, setSoloLanguage] = useState<GameLanguage>(() => {
+    try {
+      return (localStorage.getItem('tg_game_lang') as GameLanguage) || 'uz';
+    } catch {
+      return 'uz';
+    }
+  });
+
   // Yakka poyga boshlash
   const handleStartSolo = (
     userName: string,
     carId: string,
     difficulty: DifficultyLevel = 'medium',
-    distance: number = 100
+    distance: number = 100,
+    language: GameLanguage = 'uz'
   ) => {
     setCurrentUser((prev) => ({
       ...prev,
@@ -119,11 +128,13 @@ export default function App() {
     }));
     setSoloDifficulty(difficulty);
     setSoloDistance(distance);
+    setSoloLanguage(language);
     try {
       localStorage.setItem('tg_user_name', userName);
       localStorage.setItem('tg_user_car', carId);
       localStorage.setItem('tg_user_diff', difficulty);
       localStorage.setItem('tg_user_dist', distance.toString());
+      localStorage.setItem('tg_game_lang', language);
     } catch {
       // ignore
     }
@@ -176,6 +187,12 @@ export default function App() {
         isCreator: false,
         joinedAt: new Date().toISOString()
       });
+
+      // Xona faolligini yangilash va emptySince ni tozalash
+      await updateDoc(doc(db, 'rooms', roomId), {
+        lastActiveMs: Date.now(),
+        emptySince: null
+      }).catch(() => {});
 
       setCurrentUser((prev) => ({
         ...prev,
@@ -240,6 +257,8 @@ export default function App() {
         createdAt: new Date().toISOString(),
         createdAtMs: nowMs,
         updatedAtMs: nowMs,
+        lastActiveMs: nowMs,
+        emptySince: null,
         words: roomWords,
         language: language,
         countdown: null,
@@ -347,6 +366,7 @@ export default function App() {
               carId={currentUser.carId}
               initialDifficulty={soloDifficulty}
               initialDistance={soloDistance}
+              initialLanguage={soloLanguage}
               onBack={() => setViewState('home')}
               onOpenMultiplayer={() => setMultiplayerModalMode('join')}
               onChangeCar={(newCarId) => setCurrentUser(prev => ({ ...prev, carId: newCarId }))}
