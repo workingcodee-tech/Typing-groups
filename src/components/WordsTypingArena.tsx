@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { sounds } from '../utils/soundEffects';
 import { RotateCcw, Flag } from 'lucide-react';
 import { RaceStats } from '../types';
@@ -51,7 +51,8 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
   onRestart,
   startTimeMs = null,
   userRank,
-  totalRacers = 4
+  totalRacers = 4,
+  language = 'uz'
 }) => {
   const [distance, setDistance] = useState<number>(externalDistance || 100);
   const [currentWordIndex, setCurrentWordIndex] = useState<number>(0);
@@ -69,17 +70,15 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
       : generate5000Words(500);
   });
 
-  useEffect(() => {
-    if (wordsList && wordsList.length > 0) {
-      if (wordsList.length < 150) {
-        setActiveWords([...wordsList, ...generate5000Words(300)]);
-      } else {
-        setActiveWords(wordsList);
-      }
-    } else {
-      setActiveWords(generate5000Words(500));
-    }
-  }, [wordsList]);
+  const maxProgressRef = useRef<number>(0);
+  const isRacingRef = useRef<boolean>(false);
+
+  const wordsSignature = useMemo(() => {
+    if (!wordsList || wordsList.length === 0) return `gen_${language}_${distance}`;
+    return `${wordsList.length}_${wordsList[0] || ''}_${wordsList[wordsList.length - 1] || ''}`;
+  }, [wordsList, language, distance]);
+
+  const lastAppliedSignatureRef = useRef<string>('');
 
   // Statistika
   const [totalCorrectChars, setTotalCorrectChars] = useState<number>(0);
@@ -121,6 +120,8 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    maxProgressRef.current = 0;
+    isRacingRef.current = false;
     setCurrentWordIndex(0);
     setCurrentInput('');
     setStartTime(null);
@@ -140,9 +141,30 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
     }, 50);
   }, []);
 
+  // So'zlar yuklanganda yoki o'zgarganda faqat poyga faol bo'lmagan holda yangilash
   useEffect(() => {
+    // Agar poyga allaqachon boshlangan bo'lsa, o'rtada so'zlar va progress hech qachon buzilmaydi
+    if (isRacingRef.current) {
+      return;
+    }
+
+    if (wordsSignature && wordsSignature === lastAppliedSignatureRef.current) {
+      return;
+    }
+    lastAppliedSignatureRef.current = wordsSignature;
+
+    if (wordsList && wordsList.length > 0) {
+      if (wordsList.length < 150) {
+        setActiveWords([...wordsList, ...generate5000Words(300, language)]);
+      } else {
+        setActiveWords(wordsList);
+      }
+    } else {
+      setActiveWords(generate5000Words(500, language));
+    }
+
     handleReset();
-  }, [wordsList, handleReset]);
+  }, [wordsSignature, wordsList, language, handleReset]);
 
   // Countdown tugashi bilan darhol inputga fokus qilish (Mobil va kompyuter uchun birdek)
   useEffect(() => {
@@ -170,6 +192,8 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
 
   // Sinovni yakunlash (Masofani bosib o'tganda)
   const finishSession = useCallback((finalDuration: number, finalCorrectChars: number) => {
+    maxProgressRef.current = 100;
+    isRacingRef.current = false;
     setIsFinished(true);
     sounds.playFinish();
 
@@ -319,7 +343,9 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
       inputRef.current.value = '';
     }
 
-    const progressPercent = Math.min(100, Math.max(0, (nextCorrect / targetChars) * 100));
+    const calculatedProgress = Math.min(100, Math.max(0, (nextCorrect / targetChars) * 100));
+    const progressPercent = Math.max(maxProgressRef.current, calculatedProgress);
+    maxProgressRef.current = progressPercent;
     const currentMeters = Math.min(distance, Math.round((progressPercent / 100) * distance));
 
     const now = Date.now();
@@ -355,6 +381,7 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
 
     if (!startTime) {
       setStartTime(Date.now());
+      isRacingRef.current = true;
     }
 
     // Mobil klaviatura "Bo'sh joy" (Spacebar) yoki Enter yuborganda
@@ -378,6 +405,7 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
 
     if (!startTime && rawVal.length > 0) {
       setStartTime(Date.now());
+      isRacingRef.current = true;
     }
 
     // MOBIL QURILMALARDA PROBEL / BO'SH JOY BOSILGANDA (Gboard, Samsung, iOS):
@@ -394,7 +422,7 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
     const val = rawVal;
     setCurrentInput(val);
 
-    const currentWord = wordsList[currentWordIndex] || '';
+    const currentWord = activeWords[currentWordIndex] || wordsList?.[currentWordIndex] || '';
     let correctInCurrent = 0;
     for (let i = 0; i < Math.min(val.length, currentWord.length); i++) {
       if (val[i] === currentWord[i]) {
@@ -403,7 +431,9 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
     }
 
     const effectiveCorrect = totalCorrectChars + correctInCurrent;
-    const progressPercent = Math.min(100, Math.max(0, (effectiveCorrect / targetChars) * 100));
+    const calculatedProgress = Math.min(100, Math.max(0, (effectiveCorrect / targetChars) * 100));
+    const progressPercent = Math.max(maxProgressRef.current, calculatedProgress);
+    maxProgressRef.current = progressPercent;
     const currentMeters = Math.min(distance, Math.round((progressPercent / 100) * distance));
 
     const now = Date.now();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { doc, collection, onSnapshot, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { deleteRoomCompletely, leaveAndCleanRoom } from '../utils/cleanupRooms';
@@ -32,6 +32,7 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
   const [roomData, setRoomData] = useState<any>(null);
   const [participants, setParticipants] = useState<HighwayRacer[]>([]);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [isSyncingPhase, setIsSyncingPhase] = useState<boolean>(false);
   const [copied, setCopied] = useState(false);
   const [raceStats, setRaceStats] = useState<RaceStats | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -174,7 +175,21 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
         rank: rankMap.get(r.id) || 1
       }));
 
-      setParticipants(withRank);
+      // Monoton progress: Poyga vaqtida mashina hech qachon orqaga qaytmaydi
+      setParticipants((prev) => {
+        const prevMap = new Map(prev.map(p => [p.id, p]));
+        return withRank.map((r) => {
+          const prevR = prevMap.get(r.id);
+          let safeProgress = r.progress;
+          if (prevR && prevR.progress > 0 && r.progress < prevR.progress && !r.finished) {
+            safeProgress = prevR.progress;
+          }
+          return {
+            ...r,
+            progress: safeProgress
+          };
+        });
+      });
 
       // Agar foydalanuvchi allaqachon marraga yetgan bo'lsa, uning yakuniy o'rnini sinxronlashtirish
       const myRacer = withRank.find(p => p.isUser);
@@ -205,6 +220,7 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
   useEffect(() => {
     if (!roomData?.startTimeMs || (roomData?.status !== 'starting' && roomData?.status !== 'racing')) {
       setCountdown(null);
+      setIsSyncingPhase(false);
       playedCountdownRef.current = null;
       return;
     }
@@ -213,19 +229,27 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
       const now = Date.now();
       const diffMs = roomData.startTimeMs - now;
 
-      if (diffMs > 2000) {
+      // 1. Dastlabki 2.5 soniya: Barcha foydalanuvchilar kompyuterlari server bilan ma'lumot almashib ulgurishi uchun sinxronizatsiya
+      if (diffMs > 3000) {
+        setIsSyncingPhase(true);
+        setCountdown(null);
+        playedCountdownRef.current = null;
+      } else if (diffMs > 2000) {
+        setIsSyncingPhase(false);
         setCountdown(3);
         if (playedCountdownRef.current !== 3) {
           playedCountdownRef.current = 3;
           sounds.playCountdown(3);
         }
       } else if (diffMs > 1000) {
+        setIsSyncingPhase(false);
         setCountdown(2);
         if (playedCountdownRef.current !== 2) {
           playedCountdownRef.current = 2;
           sounds.playCountdown(2);
         }
       } else if (diffMs > 0) {
+        setIsSyncingPhase(false);
         setCountdown(1);
         if (playedCountdownRef.current !== 1) {
           playedCountdownRef.current = 1;
@@ -233,6 +257,7 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
         }
       } else if (diffMs > -1200) {
         // 0 bo'lganda (GO! 🏁): Barcha qurilmalarda ayni shu millisekundda poyga start oladi
+        setIsSyncingPhase(false);
         setCountdown(0);
         if (playedCountdownRef.current !== 0) {
           playedCountdownRef.current = 0;
@@ -244,6 +269,7 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
         }
       } else {
         // 1.2 soniyadan so'ng banner yashiriladi
+        setIsSyncingPhase(false);
         setCountdown(null);
       }
     };
@@ -262,16 +288,18 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
       let isBackward = false;
       const updated = prev.map((p) => {
         if (!p.isUser) return p;
+        // Mashina orqaga sakramasligi uchun monoton tekshirish
+        const safeProgress = (p.progress > 0 && progress < p.progress && !p.finished) ? p.progress : progress;
         if (progress < p.progress) {
           isBackward = true;
         }
         return {
           ...p,
-          progress,
+          progress: safeProgress,
           currentWpm: wpm,
           accuracy,
-          finished: progress >= 100,
-          isBraking: isBackward || p.isBraking
+          finished: safeProgress >= 100,
+          isBraking: false
         };
       });
 
@@ -446,8 +474,11 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
       const roomRef = doc(db, 'rooms', roomId);
       const nextRoundNumber = isNextRoundMode ? (roomData?.round || 1) + 1 : (roomData?.round || 1);
 
-      // Barcha guruhdoshlar uchun bitta aniq sinxron start vaqti (3.5 soniyadan keyin boshlanadi)
-      const synchronousStartMs = Date.now() + 3500;
+      // 2.5s tarmoq ma'lumotlari almashinuvi + 3.0s sanash = 5.5s (5500ms)
+      // Bu 2.5 soniya barcha foydalanuvchilar kompyuterlari server bilan so'zlar va boshlanish vaqtini 100% sinxronlashiga xizmat qiladi
+      const PRE_SYNC_BUFFER_MS = 2500;
+      const COUNTDOWN_MS = 3000;
+      const synchronousStartMs = Date.now() + PRE_SYNC_BUFFER_MS + COUNTDOWN_MS;
 
       await updateDoc(roomRef, {
         targetDistance: modalDistance,
@@ -516,7 +547,11 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
 
   // Poyga faolmi (startTimeMs bor va o'yin boshlangan yoki countdown ketmoqda)
   const isGameUnderway = roomData?.status === 'starting' || roomData?.status === 'racing';
-  const wordsList = roomData?.words || [];
+
+  // So'zlar ro'yxatini round va birinchi so'z bo'yicha barqaror ushlab turish (heartbeat yoki snapshot yangi massiv yaratmasligi uchun)
+  const wordsList = useMemo(() => {
+    return roomData?.words || [];
+  }, [roomData?.round, roomData?.words?.[0]]);
 
   // Barcha yoki g'olib marraga yetganini tekshirish
   const hasAnyoneFinished = participants.some(p => p.finished);
@@ -663,6 +698,21 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
           roomId={roomId}
         />
 
+        {/* Dastlabki 2-3 soniya: Qurilmalar va tarmoq ma'lumotlarini to'liq sinxronlash */}
+        {isSyncingPhase && (
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-xs z-30 rounded-2xl flex flex-col items-center justify-center animate-backdrop-fade pointer-events-none p-4 text-center">
+            <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-cyan-950/80 border border-cyan-400/50 shadow-[0_0_30px_rgba(6,182,212,0.3)] mb-2.5">
+              <div className="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping" />
+              <span className="text-xs sm:text-sm font-black font-mono tracking-wider text-cyan-200 uppercase">
+                Tarmoq va qurilmalar sinxronlashtirilmoqda...
+              </span>
+            </div>
+            <p className="text-[11px] sm:text-xs font-mono text-slate-300 max-w-md bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-700/80">
+              Barcha guruhdoshlarga start bir vaqtda berilishi uchun maʼlumotlar almashinmoqda. Tayyor turing! (3 soniyada sanaladi)
+            </p>
+          </div>
+        )}
+
         {/* 3... 2... 1... START! Overlay (Millisekund aniqlikda sinxron) */}
         {countdown !== null && (
           <div className="absolute inset-0 bg-black/75 backdrop-blur-xs z-30 rounded-2xl flex flex-col items-center justify-center animate-backdrop-fade pointer-events-none">
@@ -710,7 +760,7 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
                 onProgressUpdate={handleProgressUpdate}
                 onFinish={handleFinish}
                 isGameActive={true}
-                countdownActive={countdown !== null && countdown > 0}
+                countdownActive={isSyncingPhase || (countdown !== null && countdown > 0)}
                 startTimeMs={roomData?.startTimeMs || null}
                 selectedDistance={roomData?.targetDistance || 100}
                 userRank={myLiveRank}

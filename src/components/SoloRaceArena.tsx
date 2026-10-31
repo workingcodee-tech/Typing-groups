@@ -274,9 +274,14 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     setRacers((prev) => {
       const updated = prev.map((racer) => {
         if (!racer.isUser) return racer;
+        const formattedProgress = Number(userProgress.toFixed(2));
+        // Poyga vaqtida mashina hech qachon orqaga sakramasligi uchun monoton progress
+        const safeProgress = (racer.progress > 0 && formattedProgress < racer.progress && !racer.finished)
+          ? racer.progress
+          : formattedProgress;
         return {
           ...racer,
-          progress: Number(userProgress.toFixed(2)),
+          progress: safeProgress,
           currentWpm: wpm,
           accuracy,
           finished: userProgress >= 100
