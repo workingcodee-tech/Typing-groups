@@ -79,15 +79,19 @@ export const HighwayRaceTrack = React.memo<HighwayRaceTrackProps>(({
 
       {/* 3. ASOSIY ASFALT POYGA TRASSASI */}
       <div className="relative bg-[#161d27] min-h-[260px] max-h-[55vh] overflow-y-auto overflow-x-hidden">
-        {/* Start chizig'i (Chap tomonda) */}
-        <div className="absolute left-6 top-0 bottom-0 w-1 bg-white/40 z-10 pointer-events-none flex items-center justify-center">
-          <span className="text-[7px] text-white/50 -rotate-90 uppercase font-mono font-bold">START</span>
+        {/* Start chizig'i (Barcha mashinalar 0% progressda uning ortida tekis qator bo'lib turadi) */}
+        <div className="absolute left-[134px] sm:left-[144px] top-0 bottom-0 w-1.5 bg-gradient-to-b from-white/90 via-slate-300 to-white/90 z-10 pointer-events-none flex flex-col items-center justify-around shadow-[0_0_10px_rgba(255,255,255,0.4)]">
+          <span className="text-[7px] text-slate-900 bg-white font-mono font-black px-0.5 rounded-xs -rotate-90 uppercase">START</span>
+          <span className="text-[7px] text-slate-900 bg-white font-mono font-black px-0.5 rounded-xs -rotate-90 uppercase">START</span>
+          <span className="text-[7px] text-slate-900 bg-white font-mono font-black px-0.5 rounded-xs -rotate-90 uppercase">START</span>
         </div>
 
-        {/* Marra chizig'i (Checkered finish line - Rasmdagi shaxmat kataklari) */}
-        <div className="absolute right-6 top-0 bottom-0 w-8 bg-[repeating-conic-gradient(#000000_0%_25%,#ffffff_0%_50%)] bg-[length:12px_12px] z-10 border-l-2 border-r-2 border-yellow-400 pointer-events-none shadow-2xl">
-          <div className="h-full flex items-center justify-center bg-black/20">
-            <span className="text-[8px] text-yellow-300 font-black rotate-90 tracking-widest font-mono">FINISH</span>
+        {/* Marra chizig'i (Checkered finish line - Shaxmat kataklari va sariq chegaralar) */}
+        <div className="absolute right-6 top-0 bottom-0 w-10 bg-[repeating-conic-gradient(#000000_0%_25%,#ffffff_0%_50%)] bg-[length:10px_10px] z-10 border-l-2 border-r-2 border-yellow-400 pointer-events-none shadow-[0_0_25px_rgba(250,204,21,0.5)]">
+          <div className="h-full flex flex-col items-center justify-around bg-black/25">
+            <span className="text-[8px] text-yellow-300 font-black rotate-90 tracking-widest font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">FINISH</span>
+            <span className="text-[8px] text-yellow-300 font-black rotate-90 tracking-widest font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">🏁</span>
+            <span className="text-[8px] text-yellow-300 font-black rotate-90 tracking-widest font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">FINISH</span>
           </div>
         </div>
 
@@ -95,8 +99,8 @@ export const HighwayRaceTrack = React.memo<HighwayRaceTrackProps>(({
         <div className="divide-y divide-dashed divide-slate-700/50 py-1">
           {racers.map((racer, index) => {
             const safeProgress = Math.min(100, Math.max(0, racer.progress));
-            // Start chizig'idan finishgacha silliq siljish
-            const leftPercent = 2 + (safeProgress * 0.81);
+            // Start chizig'idan (12px) to'g'ridan-to'g'ri finish marra chizig'i ustigacha (aniq marrani bosib turadi)
+            const carLeft = `calc(12px + (100% - 176px) * (${safeProgress} / 100))`;
 
             return (
               <div
@@ -117,10 +121,10 @@ export const HighwayRaceTrack = React.memo<HighwayRaceTrackProps>(({
                 <div
                   className="absolute z-20 pointer-events-none will-change-[left,transform]"
                   style={{
-                    left: `${leftPercent}%`,
+                    left: carLeft,
                     transition: racer.isUser
-                      ? 'left 0.22s cubic-bezier(0.16, 1, 0.3, 1)'
-                      : 'left 0.08s linear'
+                      ? 'left 0.32s cubic-bezier(0.22, 0.61, 0.36, 1)'
+                      : 'left 0.35s ease-out'
                   }}
                 >
                   <CarSprite

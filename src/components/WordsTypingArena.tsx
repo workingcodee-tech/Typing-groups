@@ -66,8 +66,8 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
   const [activeWords, setActiveWords] = useState<string[]>(() => {
     if (wordsList && wordsList.length >= 120) return wordsList;
     return wordsList && wordsList.length > 0
-      ? [...wordsList, ...generate5000Words(300)]
-      : generate5000Words(500);
+      ? [...wordsList, ...generate5000Words(300, language)]
+      : generate5000Words(500, language);
   });
 
   const maxProgressRef = useRef<number>(0);
@@ -75,7 +75,7 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
 
   const wordsSignature = useMemo(() => {
     if (!wordsList || wordsList.length === 0) return `gen_${language}_${distance}`;
-    return `${wordsList.length}_${wordsList[0] || ''}_${wordsList[wordsList.length - 1] || ''}`;
+    return `${language}_${wordsList.length}_${wordsList[0] || ''}_${wordsList[wordsList.length - 1] || ''}`;
   }, [wordsList, language, distance]);
 
   const lastAppliedSignatureRef = useRef<string>('');
@@ -281,7 +281,7 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
     if (activeEl) {
       const activeLeft = activeEl.offsetLeft;
       const containerWidth = wordsContainerRef.current?.clientWidth || 360;
-      const offset = containerWidth > 500 ? 120 : 40;
+      const offset = containerWidth > 600 ? 180 : 70;
       const newScrollX = Math.max(0, activeLeft - offset);
       setScrollX(newScrollX);
     }
@@ -508,7 +508,7 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
     }
 
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      const targetChar = (wordsList[currentWordIndex] || '')[currentInput.length];
+      const targetChar = (activeWords[currentWordIndex] || '')[currentInput.length];
       const isError = e.key !== targetChar;
       sounds.playKey(e.key, false, isError);
     }
@@ -628,14 +628,14 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
         </div>
       </div>
 
-      {/* 2. PASTKI QISM: SPIDOMETR VA BIR QATORLIK YOZISH KONSOLI (Mobil va Desktop) */}
-      <div className="flex flex-row items-center gap-2 sm:gap-3 w-full">
-        {/* Chapdagi Analog Spidometr (Mobilda 52px, kompyuterda 80px) */}
+      {/* 2. PASTKI QISM: SPIDOMETR VA KATTA, TINIQ BIR QATORLIK YOZISH KONSOLI (Mobil va Desktop) */}
+      <div className="flex flex-row items-center gap-2 sm:gap-4 w-full">
+        {/* Chapdagi Katta Analog Spidometr (Mobilda 60px, kompyuterda 96px) */}
         <div className="shrink-0 flex items-center justify-center">
-          <AnalogSpeedometer wpm={liveWpm} className="w-13 h-13 sm:w-20 sm:h-20 shrink-0" />
+          <AnalogSpeedometer wpm={liveWpm} className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 shrink-0" />
         </div>
 
-        {/* O'ngdagi BIR QATORLIK monoxrom yozish maydoni (Bo'sh joyni bosganda to'g'ridan to'g'ri fokus oladi) */}
+        {/* O'ngdagi BIR QATORLIK KATTA monoxrom yozish maydoni (Ortiqcha bo'sh joylarsiz, maksimal ko'rinish) */}
         <div
           ref={wordsContainerRef}
           onClick={() => {
@@ -643,7 +643,7 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
               inputRef.current?.focus();
             }
           }}
-          className="relative flex-1 w-full h-14 sm:h-16 px-3 sm:px-4 bg-[#141b27]/95 border-2 border-slate-700/80 focus-within:border-emerald-400 rounded-2xl shadow-xl transition-all cursor-text overflow-hidden flex items-center"
+          className="relative flex-1 w-full h-18 sm:h-22 md:h-26 px-4 sm:px-6 bg-[#0c1424]/95 border-2 border-slate-700/80 focus-within:border-cyan-400 focus-within:shadow-[0_0_35px_rgba(6,182,212,0.35)] rounded-2xl sm:rounded-3xl shadow-2xl transition-all cursor-text overflow-hidden flex items-center"
         >
           {/* Native yashirin input: Mobil Safari/Chrome va kompyuter uchun to'liq optimallashgan */}
           <input
@@ -658,7 +658,7 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
             onBlur={() => setIsFocused(false)}
             readOnly={isFinished}
             className="absolute inset-0 w-full h-full z-20 cursor-text bg-transparent border-0 outline-none p-0 m-0 text-transparent caret-transparent select-none opacity-100"
-            style={{ fontSize: '16px', WebkitTapHighlightColor: 'transparent' }}
+            style={{ fontSize: '18px', WebkitTapHighlightColor: 'transparent' }}
             autoFocus={!countdownActive}
             autoCapitalize="none"
             autoComplete="off"
@@ -685,8 +685,8 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
               }}
               className="absolute inset-0 bg-[#0c121d]/85 backdrop-blur-[2px] flex items-center justify-center z-30 cursor-pointer"
             >
-              <span className="text-xs text-emerald-400 font-mono font-bold bg-emerald-950/95 border border-emerald-500/60 px-4 py-1.5 rounded-xl animate-pulse shadow-lg flex items-center gap-2">
-                <span>📱</span> Yozish uchun bosing (Klaviatura)
+              <span className="text-xs sm:text-sm text-emerald-400 font-mono font-bold bg-emerald-950/95 border border-emerald-500/60 px-4 py-2 rounded-xl animate-pulse shadow-lg flex items-center gap-2">
+                <span>📱</span> Yozish uchun bosing (Klaviatura ochilsin)
               </span>
             </button>
           )}
@@ -694,17 +694,17 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
           {/* Countdown vaqtida ko'rsatma */}
           {countdownActive && (
             <div className="absolute inset-0 bg-[#0c121d]/90 backdrop-blur-xs flex items-center justify-center z-10 pointer-events-none">
-              <span className="text-xs font-mono font-bold text-amber-400 animate-pulse tracking-wide">
+              <span className="text-xs sm:text-sm font-mono font-black text-amber-400 animate-pulse tracking-wide">
                 🚦 POYGA BOSHLANISHI KUTILMOQDA... (3-2-1)
               </span>
             </div>
           )}
 
-          {/* SO'ZLAR GORIZONTAL STRIP (Faqat bitta qator, silliq chapga siljiydi) */}
+          {/* SO'ZLAR GORIZONTAL STRIP (Katta va o'ta tiniq harflar bilan bitta qator) */}
           <div
             ref={wordsRowRef}
             style={{ transform: `translateX(-${scrollX}px)` }}
-            className="transition-transform duration-150 ease-out whitespace-nowrap flex items-center text-xl sm:text-2xl font-mono leading-none tracking-normal"
+            className="transition-transform duration-150 ease-out whitespace-nowrap flex items-center text-2xl sm:text-3xl md:text-4xl font-mono font-bold leading-none tracking-wide"
           >
             {displayWords.map((word, actualIndex) => {
               const isCurrent = actualIndex === currentWordIndex;
@@ -716,7 +716,7 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
                   <span
                     key={actualIndex}
                     ref={(el) => { wordRefs.current[actualIndex] = el; }}
-                    className="relative inline-flex items-center mr-3 select-none py-1"
+                    className="relative inline-flex items-center mx-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/70 border-2 border-cyan-400/90 shadow-[0_0_25px_rgba(6,182,212,0.4)] select-none"
                   >
                     {word.split('').map((char, cIdx) => {
                       const isTyped = cIdx < currentInput.length;
@@ -728,17 +728,17 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
                         <span key={cIdx} className="relative inline-block leading-none">
                           {/* Aktiv harf ustida chaqnagan kursor */}
                           {isCurrentChar && (
-                            <span className="absolute -left-[1.5px] top-0 bottom-0 w-[2.5px] bg-cyan-400 rounded-full shadow-[0_0_8px_#38bdf8] animate-pulse z-10" />
+                            <span className="absolute -left-[2px] top-0 bottom-0 w-[3px] bg-cyan-300 rounded-full shadow-[0_0_12px_#38bdf8] animate-pulse z-10" />
                           )}
                           <span
                             className={`transition-colors duration-75 ${
                               isTyped
                                 ? isCorrect
-                                ? 'text-white font-medium'
-                                : 'text-rose-500 font-bold'
+                                  ? 'text-emerald-400 font-black drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]'
+                                  : 'text-rose-400 bg-rose-950/90 px-0.5 rounded font-black underline drop-shadow-[0_0_10px_rgba(244,63,94,0.8)]'
                                 : isCurrentChar
-                                ? 'text-slate-100 font-medium'
-                                : 'text-slate-400'
+                                ? 'text-cyan-200 font-black drop-shadow-[0_0_15px_rgba(34,211,238,1)]'
+                                : 'text-slate-100 font-bold opacity-90'
                             }`}
                           >
                             {char}
@@ -749,13 +749,13 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
 
                     {currentInput.length >= word.length && (
                       <span className="relative inline-block w-0 leading-none">
-                        <span className="absolute -left-[1.5px] top-0 bottom-0 w-[2.5px] bg-cyan-400 rounded-full shadow-[0_0_8px_#38bdf8] animate-pulse z-10" />
+                        <span className="absolute -left-[2px] top-0 bottom-0 w-[3px] bg-cyan-300 rounded-full shadow-[0_0_12px_#38bdf8] animate-pulse z-10" />
                       </span>
                     )}
 
                     {currentInput.length > word.length && (
                       currentInput.slice(word.length).split('').map((extraChar, eIdx) => (
-                        <span key={`extra-${eIdx}`} className="text-rose-500 underline opacity-90 font-mono">
+                        <span key={`extra-${eIdx}`} className="text-rose-400 bg-rose-950/90 px-0.5 rounded underline opacity-95 font-mono font-bold">
                           {extraChar}
                         </span>
                       ))
@@ -771,10 +771,10 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
                   <span
                     key={actualIndex}
                     ref={(el) => { wordRefs.current[actualIndex] = el; }}
-                    className={`relative inline-flex items-center mr-3 select-none py-1 transition-colors ${
+                    className={`relative inline-flex items-center mr-4 select-none py-1 transition-colors ${
                       pastMatched
-                        ? 'text-slate-300'
-                        : 'text-rose-400 font-medium border-b border-rose-500/60'
+                        ? 'text-slate-500 opacity-60'
+                        : 'text-rose-400 font-bold border-b border-rose-500/60'
                     }`}
                   >
                     {word}
@@ -791,7 +791,7 @@ export const WordsTypingArena = React.memo<WordsTypingArenaProps>(({
                 <span
                   key={actualIndex}
                   ref={(el) => { wordRefs.current[actualIndex] = el; }}
-                  className="relative inline-flex items-center mr-3 select-none py-1 text-slate-500"
+                  className="relative inline-flex items-center mr-4 select-none py-1 text-slate-300 font-bold tracking-wide opacity-85 hover:opacity-100"
                 >
                   {word}
                 </span>

@@ -118,6 +118,10 @@ export const FinishCelebrationOverlay: React.FC<FinishCelebrationOverlayProps> =
   // Tab va Enter bilan tezda qayta boshlash
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      // Agar qayta poyga sozlamalari modali ochiq bo'lsa, ushbu hodisani o'tkazib yuboramiz
+      if (document.querySelector('[data-config-modal="true"]')) {
+        return;
+      }
       if (e.key === 'Tab' || e.key === 'Enter') {
         e.preventDefault();
         onRestart();

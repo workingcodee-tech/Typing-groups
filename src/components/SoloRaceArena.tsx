@@ -4,6 +4,7 @@ import { WordsTypingArena, getTargetCharsForDistance } from './WordsTypingArena'
 import { RaceResultsModal } from './RaceResultsModal';
 import { FinishCelebrationOverlay } from './FinishCelebrationOverlay';
 import { CarSelector } from './CarSelector';
+import { SoloRaceConfigModal } from './SoloRaceConfigModal';
 import { generate5000Words, GameLanguage } from '../data/words';
 import { RaceStats, DifficultyLevel } from '../types';
 import { Users, Volume2, VolumeX, X, Edit3, Globe, Play, RotateCcw, LogOut } from 'lucide-react';
@@ -64,32 +65,41 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
   const [showDetailedModal, setShowDetailedModal] = useState<boolean>(false);
   const [isCarModalOpen, setIsCarModalOpen] = useState<boolean>(false);
   const [isNameModalOpen, setIsNameModalOpen] = useState<boolean>(false);
+  const [isRestartModalOpen, setIsRestartModalOpen] = useState<boolean>(false);
   const [tempName, setTempName] = useState<string>(userName);
 
   const [selectedDistance, setSelectedDistance] = useState<number>(initialDistance);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(initialDifficulty);
+  const [raceKey, setRaceKey] = useState<number>(0);
 
-  // initialDistance o'zgarganda yangilash
+  // Faqat ota komponentdan yangi prop kelganda yangilash (ichki o'zgarishlarni bekor qilmaslik uchun)
+  const prevInitialLangRef = useRef<GameLanguage>(initialLanguage);
   useEffect(() => {
-    if (initialDistance && initialDistance !== selectedDistance) {
+    if (initialLanguage && initialLanguage !== prevInitialLangRef.current) {
+      prevInitialLangRef.current = initialLanguage;
+      setLanguage(initialLanguage);
+      setWordsList(generate5000Words(300, initialLanguage));
+      setRaceKey(prev => prev + 1);
+    }
+  }, [initialLanguage]);
+
+  const prevInitialDistRef = useRef<number>(initialDistance);
+  useEffect(() => {
+    if (initialDistance && initialDistance !== prevInitialDistRef.current) {
+      prevInitialDistRef.current = initialDistance;
       setSelectedDistance(initialDistance);
+      setRaceKey(prev => prev + 1);
     }
   }, [initialDistance]);
 
-  // initialDifficulty o'zgarganda yangilash
+  const prevInitialDiffRef = useRef<DifficultyLevel>(initialDifficulty);
   useEffect(() => {
-    if (initialDifficulty && initialDifficulty !== difficulty) {
+    if (initialDifficulty && initialDifficulty !== prevInitialDiffRef.current) {
+      prevInitialDiffRef.current = initialDifficulty;
       setDifficulty(initialDifficulty);
+      setRaceKey(prev => prev + 1);
     }
   }, [initialDifficulty]);
-
-  // initialLanguage o'zgarganda yangilash
-  useEffect(() => {
-    if (initialLanguage && initialLanguage !== language) {
-      setLanguage(initialLanguage);
-      setWordsList(generate5000Words(300, initialLanguage));
-    }
-  }, [initialLanguage, language]);
 
   // 3-2-1 Countdown va Pauza holati
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -135,7 +145,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
   const countdownTimerRef = useRef<number | null>(null);
 
   // Poygani 3-2-1 hisoblagich bilan boshlash
-  const startCountdown = useCallback(() => {
+  const startCountdown = useCallback((racersToUse?: HighwayRacer[]) => {
     if (countdownTimerRef.current) {
       clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
@@ -148,7 +158,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     setCountdown(3);
     setIsRaceActive(false);
     raceStartTimeRef.current = null;
-    setRacers(initialRacers);
+    setRacers(racersToUse || initialRacers);
 
     // Ovoz effektlari: 3
     sounds.playCountdown(3);
@@ -329,6 +339,69 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     setIsPaused(false);
   }, []);
 
+  // Qayta poyga qilish sozlamalari modalini ochish
+  const handleOpenRestartModal = useCallback(() => {
+    setIsRestartModalOpen(true);
+  }, []);
+
+  // Modal orqali tanlangan yangi parametrlar bilan yangi poygani boshlash
+  const handleConfirmRestart = useCallback((
+    newLang: GameLanguage,
+    newDiff: DifficultyLevel,
+    newDist: number
+  ) => {
+    setIsRestartModalOpen(false);
+    setShowCelebration(false);
+    setShowDetailedModal(false);
+    setIsPaused(false);
+    setRaceStats(null);
+    pausedTimeRef.current = null;
+
+    setLanguage(newLang);
+    setDifficulty(newDiff);
+    setSelectedDistance(newDist);
+    setRaceKey(prev => prev + 1);
+
+    try {
+      localStorage.setItem('tg_game_lang', newLang);
+      localStorage.setItem('tg_user_diff', newDiff);
+      localStorage.setItem('tg_user_dist', newDist.toString());
+    } catch {
+      // ignore
+    }
+
+    // Yangi botlar ro'yxatini yaratish
+    const freshBots = BOT_CONFIGS[newDiff].map((bot, index) => ({
+      id: bot.id,
+      name: bot.name,
+      carId: bot.carId,
+      progress: 0,
+      currentWpm: bot.wpm,
+      accuracy: bot.accuracy,
+      finished: false,
+      isUser: false,
+      rank: index + 2
+    }));
+
+    const freshRacers: HighwayRacer[] = [
+      {
+        id: 'user-player',
+        name: userName || 'Siz (Oʻyinchi)',
+        carId: selectedCar.id,
+        progress: 0,
+        currentWpm: 0,
+        accuracy: 100,
+        finished: false,
+        isUser: true,
+        rank: 1
+      },
+      ...freshBots
+    ];
+
+    setWordsList(generate5000Words(300, newLang));
+    startCountdown(freshRacers);
+  }, [userName, selectedCar.id, startCountdown]);
+
   const handleRestartRace = useCallback((langToUse?: GameLanguage) => {
     const activeLang = langToUse || language;
     setIsPaused(false);
@@ -336,6 +409,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     setRaceStats(null);
     setShowCelebration(false);
     setShowDetailedModal(false);
+    setRaceKey(prev => prev + 1);
     setWordsList(generate5000Words(300, activeLang));
     startCountdown();
   }, [language, startCountdown]);
@@ -350,6 +424,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     setRaceStats(null);
     setShowCelebration(false);
     setShowDetailedModal(false);
+    setRaceKey(prev => prev + 1);
     setWordsList(generate5000Words(300, language));
     startCountdown();
   }, [language, startCountdown]);
@@ -359,6 +434,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
     setRaceStats(null);
     setShowCelebration(false);
     setShowDetailedModal(false);
+    setRaceKey(prev => prev + 1);
     setWordsList(generate5000Words(300, language));
     startCountdown();
   }, [language, startCountdown]);
@@ -600,6 +676,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           const userLiveRank = userRacer?.rank || 1;
           return (
             <WordsTypingArena
+              key={`solo-arena-${raceKey}-${language}-${selectedDistance}`}
               wordsList={wordsList}
               language={language}
               onProgressUpdate={handleProgressUpdate}
@@ -608,7 +685,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
               countdownActive={countdown !== null}
               selectedDistance={selectedDistance}
               onDistanceChange={handleDistanceChange}
-              onRestart={() => handleRestartRace()}
+              onRestart={handleOpenRestartModal}
               userRank={userLiveRank}
               totalRacers={racers.length}
             />
@@ -642,7 +719,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
 
               <button
                 type="button"
-                onClick={() => handleRestartRace()}
+                onClick={handleOpenRestartModal}
                 className="w-full py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-bold text-sm rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
               >
                 <RotateCcw className="w-4 h-4 text-cyan-400" />
@@ -682,7 +759,7 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
             rank: r.rank,
             color: selectedCar.bodyColor
           }))}
-          onRestart={handleRestartRace}
+          onRestart={handleOpenRestartModal}
           onOpenDetailedStats={() => {
             setShowCelebration(false);
             setShowDetailedModal(true);
@@ -712,8 +789,8 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
             rank: r.rank,
             color: selectedCar.bodyColor
           }))}
-          onRestart={handleRestartRace}
-          onNextQuote={handleRestartRace}
+          onRestart={handleOpenRestartModal}
+          onNextQuote={handleOpenRestartModal}
           onSaveScore={() => {}}
           hasSaved={true}
         />
@@ -800,6 +877,16 @@ export const SoloRaceArena: React.FC<SoloRaceArenaProps> = ({
           </div>
         </div>
       )}
+
+      {/* 9. Qayta Poyga Qilish Sozlamalari Modali (Til, Daraja, Masofa) */}
+      <SoloRaceConfigModal
+        isOpen={isRestartModalOpen}
+        initialLanguage={language}
+        initialDifficulty={difficulty}
+        initialDistance={selectedDistance}
+        onClose={() => setIsRestartModalOpen(false)}
+        onStart={handleConfirmRestart}
+      />
     </div>
   );
 };

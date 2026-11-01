@@ -84,8 +84,10 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
   };
 
   const lastUpdateRef = useRef<number>(0);
+  const trailingDbUpdateTimerRef = useRef<number | null>(null);
   const playedCountdownRef = useRef<number | null>(null);
   const lastRoundRef = useRef<number>(1);
+  const roomDataRef = useRef<any>(null);
 
   // Xonada kamida 1 kishi bor ekan, har 15 soniyada faollik tamg'asi (heartbeat) yangilanadi.
   // Bu xonaning o'z-o'zidan yopilib ketishining 100% oldini oladi.
@@ -116,6 +118,7 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
         return;
       }
       const data = snapshot.data();
+      roomDataRef.current = data;
       setRoomData(data);
 
       // Butun ekran rejimiga o'tish (agar o'yin boshlanayotgan bo'lsa)
@@ -132,6 +135,34 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
         setShowCelebration(false);
         setShowDetailedModal(false);
         setRaceStats(null);
+        // Mashinalarni start chizig'iga qaytarish (progress: 0)
+        setParticipants(prev => prev.map(p => ({
+          ...p,
+          progress: 0,
+          currentWpm: 0,
+          finished: false,
+          finishTime: undefined,
+          finishTimeSeconds: undefined,
+          finishedAt: undefined,
+          finishRank: undefined
+        })));
+      }
+
+      // Agar poyga starting (sinxronizatsiya yoki 3-2-1 sanash) holatiga o'tsa, barcha mashinalar start chizig'iga tiziladi
+      if (data.status === 'starting') {
+        setShowCelebration(false);
+        setShowDetailedModal(false);
+        setRaceStats(null);
+        setParticipants(prev => prev.map(p => ({
+          ...p,
+          progress: 0,
+          currentWpm: 0,
+          finished: false,
+          finishTime: undefined,
+          finishTimeSeconds: undefined,
+          finishedAt: undefined,
+          finishRank: undefined
+        })));
       }
     }, (error) => {
       console.warn("Xonani kuzatishda xatolik:", error);
@@ -175,18 +206,46 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
         rank: rankMap.get(r.id) || 1
       }));
 
-      // Monoton progress: Poyga vaqtida mashina hech qachon orqaga qaytmaydi
+      // Poyga holatini tekshirish (stale closure'dan qutulish uchun roomDataRef ishlatiladi)
+      const curRoom = roomDataRef.current;
+      const isWaiting = curRoom?.status === 'waiting';
+      const isCountdownPhase = curRoom?.status === 'starting' && curRoom?.startTimeMs && Date.now() < curRoom.startTimeMs;
+      const isRaceActive = !isWaiting && !isCountdownPhase;
+
       setParticipants((prev) => {
         const prevMap = new Map(prev.map(p => [p.id, p]));
         return withRank.map((r) => {
-          const prevR = prevMap.get(r.id);
-          let safeProgress = r.progress;
-          if (prevR && prevR.progress > 0 && r.progress < prevR.progress && !r.finished) {
-            safeProgress = prevR.progress;
+          // Agar poyga hali start olmagan bo'lsa (waiting yoki countdown), barcha mashinalar start chizig'ida (progress = 0) turadi
+          if (!isRaceActive) {
+            return {
+              ...r,
+              progress: 0,
+              finished: false
+            };
           }
+
+          const prevR = prevMap.get(r.id);
+
+          // Foydalanuvchining o'z mashinasi: har doim klaviaturada yozilgan eng yuqori progress saqlanadi (hech qachon orqaga qaytmaydi)
+          if (r.isUser) {
+            const userCurrentProgress = prevR?.progress ?? (r.progress || 0);
+            const highestProgress = Math.max(userCurrentProgress, r.progress || 0);
+            return {
+              ...r,
+              progress: highestProgress,
+              currentWpm: prevR?.currentWpm ?? r.currentWpm,
+              accuracy: prevR?.accuracy ?? r.accuracy,
+              finished: highestProgress >= 100
+            };
+          }
+
+          // Boshqa o'yinchilar: bazadan kelgan progress orqaga sakramasligi uchun monoton olinadi
+          const prevOtherProgress = prevR?.progress ?? 0;
+          const safeOtherProgress = Math.max(prevOtherProgress, r.progress || 0);
           return {
             ...r,
-            progress: safeProgress
+            progress: safeOtherProgress,
+            finished: safeOtherProgress >= 100
           };
         });
       });
@@ -323,7 +382,30 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
 
     const now = Date.now();
     if (progress < 100 && now - lastUpdateRef.current < 180) {
+      if (trailingDbUpdateTimerRef.current) {
+        clearTimeout(trailingDbUpdateTimerRef.current);
+      }
+      trailingDbUpdateTimerRef.current = window.setTimeout(async () => {
+        try {
+          const myRef = doc(db, 'rooms', roomId, 'participants', myId);
+          await updateDoc(myRef, {
+            progress,
+            currentWpm: wpm,
+            accuracy,
+            totalChars,
+            errors,
+            finished: progress >= 100,
+            updatedAt: new Date().toISOString()
+          });
+        } catch {
+          // ignore
+        }
+      }, 180);
       return;
+    }
+    if (trailingDbUpdateTimerRef.current) {
+      clearTimeout(trailingDbUpdateTimerRef.current);
+      trailingDbUpdateTimerRef.current = null;
     }
     lastUpdateRef.current = now;
 
@@ -442,32 +524,42 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
     const wordsCount = Math.max(150, Math.ceil(modalDistance * 1.5));
     const newWords = generate5000Words(wordsCount, modalLanguage);
 
-    if (isNextRoundMode) {
-      setIsResettingRound(true);
-      try {
-        const participantsRef = collection(db, 'rooms', roomId, 'participants');
-        const snap = await getDocs(participantsRef);
-        const resetPromises = snap.docs.map((docSnap) =>
-          updateDoc(docSnap.ref, {
-            progress: 0,
-            currentWpm: 0,
-            accuracy: 100,
-            totalChars: 0,
-            errors: 0,
-            finished: false,
-            finishTime: null,
-            finishTimeSeconds: null,
-            finishedAt: null,
-            finishRank: null,
-            updatedAt: new Date().toISOString()
-          })
-        );
-        await Promise.all(resetPromises);
-      } catch (e) {
-        console.warn("Ishtirokchilarni tozalashda xatolik:", e);
-      } finally {
-        setIsResettingRound(false);
-      }
+    // Barcha ishtirokchilarni start chizig'iga (progress = 0) to'liq qaytarish
+    setIsResettingRound(true);
+    setParticipants(prev => prev.map(p => ({
+      ...p,
+      progress: 0,
+      currentWpm: 0,
+      finished: false,
+      finishTime: undefined,
+      finishTimeSeconds: undefined,
+      finishedAt: undefined,
+      finishRank: undefined
+    })));
+
+    try {
+      const participantsRef = collection(db, 'rooms', roomId, 'participants');
+      const snap = await getDocs(participantsRef);
+      const resetPromises = snap.docs.map((docSnap) =>
+        updateDoc(docSnap.ref, {
+          progress: 0,
+          currentWpm: 0,
+          accuracy: 100,
+          totalChars: 0,
+          errors: 0,
+          finished: false,
+          finishTime: null,
+          finishTimeSeconds: null,
+          finishedAt: null,
+          finishRank: null,
+          updatedAt: new Date().toISOString()
+        })
+      );
+      await Promise.all(resetPromises);
+    } catch (e) {
+      console.warn("Ishtirokchilarni tozalashda xatolik:", e);
+    } finally {
+      setIsResettingRound(false);
     }
 
     try {
@@ -755,6 +847,7 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
             const myLiveRank = myRacer?.rank || 1;
             return (
               <WordsTypingArena
+                key={`mp-arena-${roomData?.round || 1}-${roomData?.language || 'uz'}-${roomData?.targetDistance || 100}`}
                 wordsList={wordsList}
                 language={(roomData?.language as GameLanguage) || 'uz'}
                 onProgressUpdate={handleProgressUpdate}
