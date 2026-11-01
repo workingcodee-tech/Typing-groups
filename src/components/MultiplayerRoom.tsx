@@ -617,6 +617,18 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
     }
   };
 
+  // Poyga faolmi (startTimeMs bor va o'yin boshlangan yoki countdown ketmoqda)
+  const isGameUnderway = roomData?.status === 'starting' || roomData?.status === 'racing';
+
+  // So'zlar ro'yxatini round va birinchi so'z bo'yicha barqaror ushlab turish (heartbeat yoki snapshot yangi massiv yaratmasligi uchun)
+  // DIQQAT: React Hooks qoidalariga asosan barcha hooklar doim har qanday return'dan oldin chaqirilishi shart!
+  const wordsList = useMemo(() => {
+    return roomData?.words || [];
+  }, [roomData?.round, roomData?.words?.[0]]);
+
+  // Barcha yoki g'olib marraga yetganini tekshirish
+  const hasAnyoneFinished = participants.some(p => p.finished);
+
   if (roomClosed) {
     return (
       <div className="w-full max-w-md mx-auto p-6 bg-[#0a0f1d] border border-rose-500/40 rounded-2xl text-center space-y-3 my-auto">
@@ -636,17 +648,6 @@ export const MultiplayerRoom: React.FC<MultiplayerRoomProps> = ({
       </div>
     );
   }
-
-  // Poyga faolmi (startTimeMs bor va o'yin boshlangan yoki countdown ketmoqda)
-  const isGameUnderway = roomData?.status === 'starting' || roomData?.status === 'racing';
-
-  // So'zlar ro'yxatini round va birinchi so'z bo'yicha barqaror ushlab turish (heartbeat yoki snapshot yangi massiv yaratmasligi uchun)
-  const wordsList = useMemo(() => {
-    return roomData?.words || [];
-  }, [roomData?.round, roomData?.words?.[0]]);
-
-  // Barcha yoki g'olib marraga yetganini tekshirish
-  const hasAnyoneFinished = participants.some(p => p.finished);
 
   return (
     <div className="w-full h-full max-w-none flex flex-col justify-between py-1.5 px-2 sm:px-4 select-none relative overflow-hidden bg-[#070b14]/70">
